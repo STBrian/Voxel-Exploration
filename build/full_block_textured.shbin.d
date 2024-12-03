@@ -1,0 +1,1 @@
+full_block_textured.shbin.o: /d/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/full_block_textured.v.pica /d/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/full_block_textured.v.pica
