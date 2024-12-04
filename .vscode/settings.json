@@ -71,6 +71,7 @@
         "chrono": "cpp",
         "regex": "cpp",
         "iostream": "cpp",
-        "tex3ds.h": "c"
+        "tex3ds.h": "c",
+        "citro3d.h": "c"
     }
 }

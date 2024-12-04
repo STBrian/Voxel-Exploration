@@ -9,6 +9,8 @@
 .alias mat_emi material[3]
 
 ; Constants
+; constf basecolor(0.99, 0.6, 0.0, 1.0)
+.constf basecolor(1.0, 1.0, 1.0, 1.0)
 .constf myconst(0.0, 1.0, -1.0, -0.5)
 .alias  zeros myconst.xxxx ; Vector full of zeros
 .alias  ones  myconst.yyyy ; Vector full of ones
@@ -22,7 +24,6 @@
 .alias inpos v0
 .alias intex v1
 .alias innrm v2
-.alias inclr v3
 
 .proc main
 	; Force the w component of inpos to be 1.0
@@ -81,8 +82,9 @@
 	mad r1, r2, mat_amb, r1
 
 	; outclr = clamp r1 to [0,1]
-    mul r3, r1, inclr
-	min outclr, ones, r3
+	mov r3, basecolor
+	mul r1, r1, r3
+	min outclr, ones, r1
 
 	; We're finished
 	end
