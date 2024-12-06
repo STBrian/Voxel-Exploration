@@ -4,7 +4,7 @@
             "name": "Win32",
             "compilerPath": "C:/devkitPro/devkitARM/bin/arm-none-eabi-gcc",
             "compilerArgs": [
-                "-std=gnu++11"
+                "-std=gnu++17"
             ],
             "includePath": [
                 "${workspaceFolder}/**",
@@ -22,7 +22,7 @@
                 "_UNICODE"
             ],
             "cStandard": "c11",
-            "cppStandard": "gnu++11"
+            "cppStandard": "gnu++17"
         }
     ],
     "version": 4

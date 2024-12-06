@@ -10,14 +10,20 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <thread>
+#include <future>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
 
-#include "geometry.hpp"
+#include "chunk.hpp"
 
 #define DISPLAY_TRANSFER_FLAGS \
 	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
 	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
 	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
-#define CHUNK_SIZE 8
+
+const int MAX_CONCURRENT_TASKS = 2;
 
 typedef struct {
     C3D_FVec position;
@@ -43,8 +49,7 @@ static C3D_Mtx material =
 	}
 };
 
-static Vertex *vbo_data;
-static u16 *ibo_data;
+std::vector<Chunk> chunks;
 static Camera camera;
 
 bool initScene();
@@ -81,7 +86,7 @@ int main()
 
     int clearColor = 0x000000FF;
     float sensitivility = 0.05f;
-    float speed = 0.1f;
+    float speed = 0.3f;
 
     // Main loop
 	while (aptMainLoop() && success)
@@ -177,10 +182,6 @@ int main()
         fpsString = "FPS: " + std::to_string((int)floor(fps));
 	}
 
-    // Free the VBO
-	linearFree(vbo_data);
-    linearFree(ibo_data);
-
 	// Free the shader program
 	shaderProgramFree(&program);
 	DVLB_Free(vshader_dvlb);
@@ -205,16 +206,14 @@ void prepare3DRendering()
     AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2); // v1=texcoord
     AttrInfo_AddLoader(attrInfo, 2, GPU_FLOAT, 3); // v2=normal
 
-    C3D_BufInfo *bufInfo = C3D_GetBufInfo();
-    BufInfo_Init(bufInfo);
-    BufInfo_Add(bufInfo, vbo_data, sizeof(Vertex), 3, 0x210);
-
     C3D_TexBind(0, NULL);
 
     C3D_TexEnv* env = C3D_GetTexEnv(0);
     C3D_TexEnvInit(env);
     C3D_TexEnvSrc(env, C3D_Both, GPU_PRIMARY_COLOR);
     C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
+
+    C3D_CullFace(GPU_CULL_BACK_CCW);
 }
 
 bool initScene()
@@ -247,44 +246,43 @@ bool initScene()
 
             // Initialize Camera
             camera = (Camera){
-                .position = FVec3_New(0.0f, 0.0f, 0.0f),
+                .position = FVec3_New(0.0f, -60.0f, 0.0f),
                 .yaw = 0.0f,
                 .pitch = 0.0f
             };
 
-            // Create the Vertex Buffer Object and Index Buffer Object
-            vbo_data = (Vertex *)linearAlloc(sizeof(cube_vertex_list)*CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE);
-            ibo_data = (u16 *)linearAlloc(sizeof(vindexes)*6*CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE);
-            for (int y = 0; y < CHUNK_SIZE; y++)
-            {
-                for (int x = 0; x < CHUNK_SIZE; x++)
-                {
-                    for (int z = 0; z < CHUNK_SIZE; z++)
-                    {
-                        int block_index = (y*CHUNK_SIZE*CHUNK_SIZE+x*CHUNK_SIZE+z);
-                        int uindex = block_index*4*6;
-                        for (int i = 0; i < 4*6; i++)
-                        {
-                            vbo_data[uindex + i] = cube_vertex_list[i];
-                            vbo_data[uindex + i].position[0] += x;
-                            vbo_data[uindex + i].position[1] += y;
-                            vbo_data[uindex + i].position[2] += z;
-                            vbo_data[uindex + i].normal[0] += x;
-                            vbo_data[uindex + i].normal[1] += y;
-                            vbo_data[uindex + i].normal[2] += z;
-                        }
+            std::queue<std::future<void>> taskQueue;
+            int currentTasks = 0;
 
-                        int vindex = block_index*6*6;
-                        for (int i = 0; i < 6; i++)
-                        {
-                            for (int j = 0; j < 6; j++)
-                            {
-                                ibo_data[6 * i + j + vindex] = vindexes[j] + i * 4 + uindex;
-                            }
-                        }
-                    }
+            std::cout << "Generating chunk data..." << std::endl;
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < 4; j++)
+                    chunks.emplace_back(i, j);
+
+            for (Chunk& chunk : chunks)
+            {
+                if (currentTasks >= MAX_CONCURRENT_TASKS) {
+                    taskQueue.front().get();
+                    taskQueue.pop();
+                    std::cout << "One chunk task has ended" << std::endl;
+                    currentTasks--;
                 }
+
+                taskQueue.push(std::async(std::launch::async, &Chunk::generateChunkData, &chunk));
+                currentTasks++;
             }
+
+            while (!taskQueue.empty())
+            {
+                taskQueue.front().get();
+                taskQueue.pop();
+                std::cout << "One chunk task has ended" << std::endl;
+            }
+            
+            std::cout << "Generating rendering chunk data..." << std::endl;
+            for (Chunk& chunk : chunks)
+                chunk.generateRenderObject();
+            std::cout << "All done!" << std::endl;
 
             delete[] buffer;
             return true;
@@ -302,7 +300,7 @@ bool initScene()
 void sceneRender()
 {
     // World transformation
-    C3D_Mtx world, view, projection, viewModel, WVP;
+    C3D_Mtx world, projection, viewModel, WVP;
     Mtx_Identity(&world);
     Mtx_Scale(&world, 1.0f, 1.0f, 1.0f);
     Mtx_Translate(&world, 0.0f, 0.0f, 0.0f, true);
@@ -325,8 +323,11 @@ void sceneRender()
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_modelView, &world);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_material, &material);
     C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightVec,     0.0f, 0.0f, -1.0f, 0.0f);
-	C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightHalfVec, 0.0f, 0.0f, -1.0f, 0.0f);
+	C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightHalfVec, 0.0f, 1.0f, 0.0f, 0.0f);
 	C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightClr,     1.0f, 1.0f,  1.0f, 1.0f);
 
-    C3D_DrawElements(GPU_TRIANGLES, 6*6*CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE, C3D_UNSIGNED_SHORT, ibo_data);
+    for (Chunk& chunk: chunks)
+    {
+        chunk.renderChunk();
+    }
 }

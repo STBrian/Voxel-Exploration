@@ -72,6 +72,9 @@
         "regex": "cpp",
         "iostream": "cpp",
         "tex3ds.h": "c",
-        "citro3d.h": "c"
+        "citro3d.h": "c",
+        "condition_variable": "cpp",
+        "future": "cpp",
+        "mutex": "cpp"
     }
 }

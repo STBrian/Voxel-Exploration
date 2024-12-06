@@ -108,7 +108,12 @@ main.o: \
  C:/devkitPro/libctru/include/c2d/sprite.h \
  C:/devkitPro/libctru/include/c2d/text.h \
  C:/devkitPro/libctru/include/c2d/font.h \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/geometry.hpp
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/chunk.hpp \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/geometry.hpp \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render_utils.hpp \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/terrain_generation.hpp \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/PerlinNoise.hpp \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/FastNoiseLite.h
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -217,4 +222,9 @@ C:/devkitPro/libctru/include/c2d/spritesheet.h:
 C:/devkitPro/libctru/include/c2d/sprite.h:
 C:/devkitPro/libctru/include/c2d/text.h:
 C:/devkitPro/libctru/include/c2d/font.h:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/chunk.hpp:
 D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/geometry.hpp:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render_utils.hpp:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/terrain_generation.hpp:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/PerlinNoise.hpp:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/FastNoiseLite.h:
