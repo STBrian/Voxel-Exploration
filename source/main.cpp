@@ -16,21 +16,13 @@
 #include <mutex>
 #include <condition_variable>
 
+#include "render3d.hpp"
 #include "chunk.hpp"
 
 #define DISPLAY_TRANSFER_FLAGS \
 	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
 	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
 	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
-
-const int MAX_CONCURRENT_TASKS = 2;
-
-typedef struct {
-    C3D_FVec position;
-    float yaw;
-    float pitch;
-    C3D_Mtx view;
-} Camera;
 
 C2D_TextBuf g_textBuffer;
 C2D_Text g_fpsText;
@@ -107,7 +99,7 @@ int main()
 
         // Camera movement
         camera.pitch -= cStick.dy * sensitivility;
-        camera.yaw += cStick.dx * sensitivility;
+        camera.yaw -= cStick.dx * sensitivility;
         if (camera.pitch > 89.0f) camera.pitch = 89.0f;
         if (camera.pitch < -89.0f) camera.pitch = -89.0f;
         if (camera.yaw > 360.0f) camera.yaw -= 360.0f;
@@ -139,15 +131,15 @@ int main()
         if (kHeld & KEY_DOWN)
             camera.position = FVec3_Subtract(camera.position, FVec3_Scale(forwardXZ, speed));
         if (kHeld & KEY_RIGHT)
-            camera.position = FVec3_Subtract(camera.position, FVec3_Scale(right, speed));
-        if (kHeld & KEY_LEFT)
             camera.position = FVec3_Add(camera.position, FVec3_Scale(right, speed));
+        if (kHeld & KEY_LEFT)
+            camera.position = FVec3_Subtract(camera.position, FVec3_Scale(right, speed));
         if (kHeld & KEY_A)
             camera.position = FVec3_Subtract(camera.position, FVec3_New(0.0f, speed, 0.0f));
         if (kHeld & KEY_B)
             camera.position = FVec3_Add(camera.position, FVec3_New(0.0f, speed, 0.0f));
         
-        Mtx_LookAt(&camera.view, camera.position, FVec3_Add(camera.position, forward), up, false);
+        Mtx_LookAt(&camera.view, FVec3_Negate(camera.position), FVec3_Negate(FVec3_Add(camera.position, forward)), FVec3_Negate(up), false);
 
 		// Need to configure every frame since Citro2D uses its own shader that broke all 3d rendering
         prepare3DRendering();
@@ -202,9 +194,9 @@ void prepare3DRendering()
 
     C3D_AttrInfo* attrInfo = C3D_GetAttrInfo();
     AttrInfo_Init(attrInfo);
-    AttrInfo_AddLoader(attrInfo, 0, GPU_FLOAT, 3); // v0=position
+    AttrInfo_AddLoader(attrInfo, 0, GPU_UNSIGNED_BYTE, 3); // v0=position
     AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2); // v1=texcoord
-    AttrInfo_AddLoader(attrInfo, 2, GPU_FLOAT, 3); // v2=normal
+    AttrInfo_AddLoader(attrInfo, 2, GPU_UNSIGNED_BYTE, 3); // v2=normal
 
     C3D_TexBind(0, NULL);
 
@@ -232,6 +224,7 @@ bool initScene()
             // Get the location of the uniforms
             uLoc_projection   = shaderInstanceGetUniformLocation(program.vertexShader, "projection");
             uLoc_modelView    = shaderInstanceGetUniformLocation(program.vertexShader, "modelView");
+            Render3D::getInstance().setLocModelView(uLoc_modelView);
             uLoc_lightVec     = shaderInstanceGetUniformLocation(program.vertexShader, "lightVec");
             uLoc_lightHalfVec = shaderInstanceGetUniformLocation(program.vertexShader, "lightHalfVec");
             uLoc_lightClr     = shaderInstanceGetUniformLocation(program.vertexShader, "lightClr");
@@ -240,48 +233,34 @@ bool initScene()
             // Configure attributes for use with the vertex shader
             C3D_AttrInfo* attrInfo = C3D_GetAttrInfo();
             AttrInfo_Init(attrInfo);
-            AttrInfo_AddLoader(attrInfo, 0, GPU_FLOAT, 3); // v0=position
+            AttrInfo_AddLoader(attrInfo, 0, GPU_UNSIGNED_BYTE, 3); // v0=position
             AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2); // v1=texcoord
-            AttrInfo_AddLoader(attrInfo, 2, GPU_FLOAT, 3); // v2=normal
+            AttrInfo_AddLoader(attrInfo, 2, GPU_UNSIGNED_BYTE, 3); // v2=normal
 
             // Initialize Camera
             camera = (Camera){
-                .position = FVec3_New(0.0f, -60.0f, 0.0f),
+                .position = FVec3_New(0.0f, -150.0f, 0.0f),
                 .yaw = 0.0f,
                 .pitch = 0.0f
             };
 
-            std::queue<std::future<void>> taskQueue;
-            int currentTasks = 0;
-
             std::cout << "Generating chunk data..." << std::endl;
-            for (int i = 0; i < 4; i++)
-                for (int j = 0; j < 4; j++)
+            for (int i = 0; i < 2; i++)
+                for (int j = 0; j < 2; j++)
                     chunks.emplace_back(i, j);
 
             for (Chunk& chunk : chunks)
             {
-                if (currentTasks >= MAX_CONCURRENT_TASKS) {
-                    taskQueue.front().get();
-                    taskQueue.pop();
-                    std::cout << "One chunk task has ended" << std::endl;
-                    currentTasks--;
-                }
-
-                taskQueue.push(std::async(std::launch::async, &Chunk::generateChunkData, &chunk));
-                currentTasks++;
-            }
-
-            while (!taskQueue.empty())
-            {
-                taskQueue.front().get();
-                taskQueue.pop();
+                chunk.generateChunkData();
                 std::cout << "One chunk task has ended" << std::endl;
             }
             
             std::cout << "Generating rendering chunk data..." << std::endl;
             for (Chunk& chunk : chunks)
+            {
                 chunk.generateRenderObject();
+                std::cout << "One chunk task has ended" << std::endl;
+            }
             std::cout << "All done!" << std::endl;
 
             delete[] buffer;
@@ -300,11 +279,7 @@ bool initScene()
 void sceneRender()
 {
     // World transformation
-    C3D_Mtx world, projection, viewModel, WVP;
-    Mtx_Identity(&world);
-    Mtx_Scale(&world, 1.0f, 1.0f, 1.0f);
-    Mtx_Translate(&world, 0.0f, 0.0f, 0.0f, true);
-    Mtx_RotateY(&world, C3D_AngleFromDegrees(0.0f), true);
+    C3D_Mtx projection, viewModel, WVP;
 
     // Calculate the camera view matrix
     //Mtx_Identity(&view);
@@ -315,14 +290,14 @@ void sceneRender()
     // Compute the projection matrix
 	Mtx_PerspTilt(&projection, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false);
 
-    Mtx_Multiply(&viewModel, &camera.view, &world);
+    Mtx_Multiply(&viewModel, &camera.view, Render3D::getInstance().getWorldMatrix());
     Mtx_Multiply(&WVP, &projection, &viewModel);
     
     // Update uniforms 
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_projection, &WVP);
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_modelView, &world);
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_modelView, Render3D::getInstance().getWorldMatrix());
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_material, &material);
-    C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightVec,     0.0f, 0.0f, -1.0f, 0.0f);
+    C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightVec,     0.0f, -1.0f, 0.0f, 0.0f);
 	C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightHalfVec, 0.0f, 1.0f, 0.0f, 0.0f);
 	C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightClr,     1.0f, 1.0f,  1.0f, 1.0f);
 

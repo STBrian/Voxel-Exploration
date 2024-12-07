@@ -103,10 +103,9 @@ chunk.o: \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
  D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/geometry.hpp \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render_utils.hpp \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/terrain_generation.hpp \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/PerlinNoise.hpp \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/FastNoiseLite.h
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/FastNoiseLite.h \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render3d.hpp \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render_utils.hpp
 D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/chunk.hpp:
 C:/devkitPro/libctru/include/citro3d.h:
 C:/devkitPro/libctru/include/c3d/types.h:
@@ -210,7 +209,6 @@ C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
 D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/geometry.hpp:
-D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render_utils.hpp:
-D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/terrain_generation.hpp:
-D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/PerlinNoise.hpp:
 D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/FastNoiseLite.h:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render3d.hpp:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render_utils.hpp:

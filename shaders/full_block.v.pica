@@ -14,6 +14,7 @@
 .constf myconst(0.0, 1.0, -1.0, -0.5)
 .alias  zeros myconst.xxxx ; Vector full of zeros
 .alias  ones  myconst.yyyy ; Vector full of ones
+.alias minusone myconst.zzzz ; Vector full of minus ones
 
 ; Outputs
 .out outpos position
@@ -45,9 +46,13 @@
     ; outtex = intex
 	mov outtc0, intex
 
+	; Decode normal (substract one)
+	mov r0.xyz, innrm
+	mov r1, minusone
+	add r0, r0, r1
+
 	; Transform the normal vector with the modelView matrix
 	; r1 = normalize(modelView * innrm)
-	mov r0.xyz, innrm
 	mov r0.w,   zeros
 	dp4 r1.x,   modelView[0], r0
 	dp4 r1.y,   modelView[1], r0

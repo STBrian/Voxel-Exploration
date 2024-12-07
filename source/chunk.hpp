@@ -7,14 +7,12 @@
 #include <unordered_map>
 
 #include "geometry.hpp"
-#include "render_utils.hpp"
-#include "terrain_generation.hpp"
 
 class Chunk
 {
     public:
-        static const int8_t CHUNK_SIZE = 16;
-        static const int16_t CHUNK_HEIGHT = 256;
+        static const uint8_t CHUNK_SIZE = 16;
+        static const uint16_t CHUNK_HEIGHT = 256;
         int CHUNK_X, CHUNK_Z;
         int seed = 2342;
         bool renderReady = false;
@@ -42,7 +40,7 @@ class Chunk
 
     private:
         std::unordered_map<uint8_t, std::vector<uint8_t>> layered_blocks_data;
-        std::unordered_map<uint8_t, Vertex *> VBOs;
-        std::unordered_map<uint8_t, uint16_t*> IBOs;
+        std::unordered_map<uint8_t, CompressedVertex *> VBOs;
+        std::unordered_map<uint8_t, uint16_t *> IBOs;
         std::unordered_map<uint8_t, uint16_t> facesPerFragment;
 };

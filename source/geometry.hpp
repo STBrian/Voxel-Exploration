@@ -2,12 +2,21 @@
 
 #include <3ds.h>
 
+#include <cstdint>
+
 typedef struct
 {
     float position[3];
     float texcoord[2];
     float normal[3];
 } Vertex;
+
+typedef struct
+{
+    uint8_t position[3];
+    float texcoord[2];
+    uint8_t normal[3];
+} CompressedVertex;
 
 typedef struct 
 {
@@ -68,3 +77,10 @@ static const u16 vindexes[] = {
     0, 1, 2,
     2, 3, 0
 };
+
+inline uint8_t encodeNormalComponent(float value) {
+    if (value == -1.0f) return 0;
+    if (value == 0.0f) return 1;
+    if (value == 1.0f) return 2;
+    return 1;
+}
