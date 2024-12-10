@@ -46,9 +46,7 @@ class Render3D
                     this->uLoc_material     = shaderInstanceGetUniformLocation(this->program.vertexShader, "material");
 
                     Mtx_Identity(&this->world);
-                    Mtx_Scale(&this->world, 1.0f, 1.0f, 1.0f);
-                    Mtx_RotateY(&this->world, C3D_AngleFromDegrees(0.0f), true);
-                    Mtx_Translate(&this->world, 0.0f, 0.0f, 0.0f, true);
+                    Mtx_Identity(&this->modelView);
 
                     Mtx_PerspTilt(&this->projection, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false);
 
@@ -65,9 +63,20 @@ class Render3D
                 return false;
         }
 
+        void freeShaderProgram()
+        {
+            shaderProgramFree(&this->program);
+            DVLB_Free(this->vshader_dvlb);
+        }
+
         void setWorldViewMatrix(C3D_Mtx *worldMtx)
         {
             Mtx_Copy(&this->world, worldMtx);
+        }
+
+        void setModelViewMatrix(C3D_Mtx *in)
+        {
+            Mtx_Copy(&this->modelView, in);
         }
 
         C3D_Mtx *getWorldMatrix()
@@ -110,7 +119,7 @@ class Render3D
 
             // Update uniforms 
             C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, this->uLoc_projection, &WVP);
-            C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, this->uLoc_modelView, &this->world);
+            C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, this->uLoc_modelView, &this->modelView);
             C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, this->uLoc_material, &this->material);
             C3D_FVUnifSet(GPU_VERTEX_SHADER, this->uLoc_lightVec,     0.0f, -1.0f, 0.0f, 0.0f);
             C3D_FVUnifSet(GPU_VERTEX_SHADER, this->uLoc_lightHalfVec, 0.0f, 1.0f, 0.0f, 0.0f);
@@ -157,5 +166,5 @@ class Render3D
         int uLoc_projection, uLoc_modelView;
         int uLoc_lightVec, uLoc_lightHalfVec, uLoc_lightClr, uLoc_material;
         C3D_Mtx material;
-        C3D_Mtx world, projection, cameraView;
+        C3D_Mtx world, projection, cameraView, modelView;
 };

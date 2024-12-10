@@ -344,16 +344,24 @@ void Chunk::renderChunk()
                 Mtx_Identity(&world);
                 Mtx_Translate(&world, this->CHUNK_SIZE * this->CHUNK_X - 0.5, this->CHUNK_SIZE * fragment - 0.5, this->CHUNK_SIZE * this->CHUNK_Z - 0.5, false);
                 Mtx_RotateY(&world, C3D_AngleFromDegrees(0.0f), true);
-                Render3D::getInstance().setWorldViewMatrix(&world);
+                Render3D::getInstance().setModelViewMatrix(&world);
 
-                C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, Render3D::getInstance().getLocModelView(), &world);
-
-                C3D_BufInfo *bufInfo = C3D_GetBufInfo();
-                BufInfo_Init(bufInfo);
-                BufInfo_Add(bufInfo, this->VBOs[fragment], sizeof(CompressedVertex), 3, 0x210);
-
-                C3D_DrawElements(GPU_TRIANGLES, (this->facesPerFragment[fragment]) * 6, C3D_UNSIGNED_SHORT, this->IBOs[fragment]);
+                Render3D::getInstance().renderOptimizedInstance(this->VBOs[fragment], this->IBOs[fragment], this->facesPerFragment[fragment] * 6);
             }
         }
+    }
+}
+
+void Chunk::freeRenderObject()
+{
+    if (this->renderReady)
+    {
+        uint8_t fragment_n = this->CHUNK_HEIGHT / this->CHUNK_SIZE;
+        for (uint8_t fragment = 0; fragment < fragment_n; fragment++)
+        {
+            linearFree(this->VBOs[fragment]);
+            linearFree(this->IBOs[fragment]);
+        }
+        this->renderReady = false;
     }
 }

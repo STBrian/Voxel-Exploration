@@ -27,26 +27,8 @@
 C2D_TextBuf g_textBuffer;
 C2D_Text g_fpsText;
 
-static DVLB_s* vshader_dvlb;
-static shaderProgram_s program;
-static int uLoc_projection, uLoc_modelView;
-static int uLoc_lightVec, uLoc_lightHalfVec, uLoc_lightClr, uLoc_material;
-static C3D_Mtx material =
-{
-	{
-	{ { 0.0f, 0.2f, 0.2f, 0.2f } }, // Ambient
-	{ { 0.0f, 0.4f, 0.4f, 0.4f } }, // Diffuse
-	{ { 0.0f, 0.8f, 0.8f, 0.8f } }, // Specular
-	{ { 1.0f, 0.0f, 0.0f, 0.0f } }, // Emission
-	}
-};
-
 std::vector<Chunk> chunks;
 static Camera camera;
-
-bool initScene();
-void prepare3DRendering();
-void sceneRender();
 
 int main()
 {
@@ -70,7 +52,26 @@ int main()
     //C2D_Image img = C2D_SpriteSheetGetImage(atlasSheet, 0);
     //C3D_Tex texture = *img.tex;
 
-    bool success = initScene();
+    bool success = Render3D::getInstance().loadResources();
+
+    std::cout << "Generating chunk data..." << std::endl;
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++)
+            chunks.emplace_back(i, j);
+
+    for (Chunk& chunk : chunks)
+    {
+        chunk.generateChunkData();
+        std::cout << "One chunk task has ended" << std::endl;
+    }
+
+    std::cout << "Generating rendering chunk data..." << std::endl;
+    for (Chunk& chunk : chunks)
+    {
+        chunk.generateRenderObject();
+        std::cout << "One chunk task has ended" << std::endl;
+    }
+    std::cout << "All done!" << std::endl;
 
     std::chrono::time_point<std::chrono::high_resolution_clock> lastTime;
     float fps = 0.0f;
@@ -80,9 +81,17 @@ int main()
     float sensitivility = 0.05f;
     float speed = 0.3f;
 
+    bool reloadShader = true;
+
     // Main loop
 	while (aptMainLoop() && success)
 	{
+        if (reloadShader)
+        {
+            Render3D::getInstance().freeShaderProgram();
+            Render3D::getInstance().loadResources();
+            reloadShader = false;
+        }
         // To calculate frames
         lastTime = std::chrono::high_resolution_clock::now();
 
@@ -139,16 +148,15 @@ int main()
         if (kHeld & KEY_B)
             camera.position = FVec3_Add(camera.position, FVec3_New(0.0f, speed, 0.0f));
         
-        Mtx_LookAt(&camera.view, FVec3_Negate(camera.position), FVec3_Negate(FVec3_Add(camera.position, forward)), FVec3_Negate(up), false);
-
-		// Need to configure every frame since Citro2D uses its own shader that broke all 3d rendering
-        prepare3DRendering();
+        Render3D::getInstance().setCameraViewMatrix(FVec3_Negate(camera.position), FVec3_Negate(FVec3_Add(camera.position, forward)), FVec3_Negate(up));
 
         // Render the 3D scene
 		C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
         C3D_RenderTargetClear(target3D, C3D_CLEAR_ALL, clearColor, 0);
         C3D_FrameDrawOn(target3D);
-        sceneRender();
+        
+        for (Chunk& chunk: chunks)
+            chunk.renderChunk();
 
         // Need to configure every frame since change Citro3d shader broke 2d rendering
         C2D_Prepare();
@@ -172,137 +180,34 @@ int main()
         lastTime = currentTime;
 
         fpsString = "FPS: " + std::to_string((int)floor(fps));
+
+        if (kDown & KEY_SELECT)
+        {
+            std::cout << "Generating rendering chunk data..." << std::endl;
+            for (Chunk& chunk : chunks)
+            {
+                chunk.freeRenderObject();
+                chunk.generateRenderObject();
+                std::cout << "One chunk task has ended" << std::endl;
+            }
+            std::cout << "All done!" << std::endl;
+            reloadShader = true;
+        }
 	}
 
+    for (Chunk& chunk : chunks)
+        chunk.freeRenderObject();
+
 	// Free the shader program
-	shaderProgramFree(&program);
-	DVLB_Free(vshader_dvlb);
+    //Render3D::getInstance().freeShaderProgram();
 
     C2D_TextBufDelete(g_textBuffer);
 
 	// Deinitialize graphics
 	C3D_Fini();
+    C2D_Fini();
 	gfxExit();
     romfsExit();
 
     return 0;
-}
-
-void prepare3DRendering()
-{
-    C3D_BindProgram(&program);
-
-    C3D_AttrInfo* attrInfo = C3D_GetAttrInfo();
-    AttrInfo_Init(attrInfo);
-    AttrInfo_AddLoader(attrInfo, 0, GPU_UNSIGNED_BYTE, 3); // v0=position
-    AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2); // v1=texcoord
-    AttrInfo_AddLoader(attrInfo, 2, GPU_UNSIGNED_BYTE, 3); // v2=normal
-
-    C3D_TexBind(0, NULL);
-
-    C3D_TexEnv* env = C3D_GetTexEnv(0);
-    C3D_TexEnvInit(env);
-    C3D_TexEnvSrc(env, C3D_Both, GPU_PRIMARY_COLOR);
-    C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
-
-    C3D_CullFace(GPU_CULL_BACK_CCW);
-}
-
-bool initScene()
-{
-    std::ifstream file("romfs:/shaders/full_block.shbin", std::ios::binary | std::ios::ate);
-    if (file) {
-        std::streamsize size = file.tellg();
-        file.seekg(0, std::ios::beg);
-
-        uint8_t *buffer = new uint8_t[size];
-        if (file.read(reinterpret_cast<char *>(buffer), size)) {
-            vshader_dvlb = DVLB_ParseFile(reinterpret_cast<uint32_t *>(buffer), size / 4);
-            shaderProgramInit(&program);
-            shaderProgramSetVsh(&program, &vshader_dvlb->DVLE[0]);
-
-            // Get the location of the uniforms
-            uLoc_projection   = shaderInstanceGetUniformLocation(program.vertexShader, "projection");
-            uLoc_modelView    = shaderInstanceGetUniformLocation(program.vertexShader, "modelView");
-            Render3D::getInstance().setLocModelView(uLoc_modelView);
-            uLoc_lightVec     = shaderInstanceGetUniformLocation(program.vertexShader, "lightVec");
-            uLoc_lightHalfVec = shaderInstanceGetUniformLocation(program.vertexShader, "lightHalfVec");
-            uLoc_lightClr     = shaderInstanceGetUniformLocation(program.vertexShader, "lightClr");
-            uLoc_material     = shaderInstanceGetUniformLocation(program.vertexShader, "material");
-
-            // Configure attributes for use with the vertex shader
-            C3D_AttrInfo* attrInfo = C3D_GetAttrInfo();
-            AttrInfo_Init(attrInfo);
-            AttrInfo_AddLoader(attrInfo, 0, GPU_UNSIGNED_BYTE, 3); // v0=position
-            AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2); // v1=texcoord
-            AttrInfo_AddLoader(attrInfo, 2, GPU_UNSIGNED_BYTE, 3); // v2=normal
-
-            // Initialize Camera
-            camera = (Camera){
-                .position = FVec3_New(0.0f, -150.0f, 0.0f),
-                .yaw = 0.0f,
-                .pitch = 0.0f
-            };
-
-            std::cout << "Generating chunk data..." << std::endl;
-            for (int i = 0; i < 2; i++)
-                for (int j = 0; j < 2; j++)
-                    chunks.emplace_back(i, j);
-
-            for (Chunk& chunk : chunks)
-            {
-                chunk.generateChunkData();
-                std::cout << "One chunk task has ended" << std::endl;
-            }
-            
-            std::cout << "Generating rendering chunk data..." << std::endl;
-            for (Chunk& chunk : chunks)
-            {
-                chunk.generateRenderObject();
-                std::cout << "One chunk task has ended" << std::endl;
-            }
-            std::cout << "All done!" << std::endl;
-
-            delete[] buffer;
-            return true;
-        }
-        else
-        {
-            delete[] buffer;
-            return false;
-        }
-    }
-    else
-        return false;
-}
-
-void sceneRender()
-{
-    // World transformation
-    C3D_Mtx projection, viewModel, WVP;
-
-    // Calculate the camera view matrix
-    //Mtx_Identity(&view);
-    //Mtx_RotateX(&view, C3D_AngleFromDegrees(camera.pitch), true);
-    //Mtx_RotateY(&view, C3D_AngleFromDegrees(camera.yaw), false);
-    //Mtx_Translate(&view, -camera.position.x, -camera.position.y, -camera.position.z, true);
-
-    // Compute the projection matrix
-	Mtx_PerspTilt(&projection, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false);
-
-    Mtx_Multiply(&viewModel, &camera.view, Render3D::getInstance().getWorldMatrix());
-    Mtx_Multiply(&WVP, &projection, &viewModel);
-    
-    // Update uniforms 
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_projection, &WVP);
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_modelView, Render3D::getInstance().getWorldMatrix());
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_material, &material);
-    C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightVec,     0.0f, -1.0f, 0.0f, 0.0f);
-	C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightHalfVec, 0.0f, 1.0f, 0.0f, 0.0f);
-	C3D_FVUnifSet(GPU_VERTEX_SHADER, uLoc_lightClr,     1.0f, 1.0f,  1.0f, 1.0f);
-
-    for (Chunk& chunk: chunks)
-    {
-        chunk.renderChunk();
-    }
 }

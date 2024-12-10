@@ -19,24 +19,14 @@ class Chunk
 
     public:
         Chunk(int x, int z) : CHUNK_X(x), CHUNK_Z(z) {}
-        ~Chunk() 
-        {
-            if (this->renderReady)
-            {
-                uint8_t fragment_n = this->CHUNK_HEIGHT / this->CHUNK_SIZE;
-                for (uint8_t fragment = 0; fragment < fragment_n; fragment++)
-                {
-                    linearFree(this->VBOs[fragment]);
-                    linearFree(this->IBOs[fragment]);
-                }
-            }
-        };
+        ~Chunk() {}
 
         void setChunkBlock(uint8_t x, uint8_t y, uint8_t z, uint8_t blockID);
         uint8_t getChunkBlock(uint8_t x, uint8_t y, uint8_t z);
         void generateChunkData();
         void generateRenderObject();
         void renderChunk();
+        void freeRenderObject();
 
     private:
         std::unordered_map<uint8_t, std::vector<uint8_t>> layered_blocks_data;
