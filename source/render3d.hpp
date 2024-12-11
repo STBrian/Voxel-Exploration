@@ -1,7 +1,9 @@
 #pragma once
 
+#include <iostream>
 #include <fstream>
 #include <cstdint>
+#include <string>
 
 #include <3ds.h>
 #include <citro3d.h>
@@ -24,43 +26,62 @@ class Render3D
             return instance;
         }
 
-        bool loadResources()
+        bool loadShader(std::string shaderFp)
         {
-            std::ifstream file("romfs:/shaders/full_block.shbin", std::ios::binary | std::ios::ate);
-            if (file) {
+            bool result = false;
+            std::cout << "Loading shader at directory: " << shaderFp << std::endl;
+            std::ifstream file(shaderFp, std::ios::binary | std::ios::ate);
+            if (!file) 
+                std::cout << "Failed to open shader file" << std::endl;
+            else
+            {
                 std::streamsize size = file.tellg();
                 file.seekg(0, std::ios::beg);
 
                 uint8_t *buffer = new uint8_t[size];
-                if (file.read(reinterpret_cast<char *>(buffer), size)) {
-                    vshader_dvlb = DVLB_ParseFile(reinterpret_cast<uint32_t *>(buffer), size / 4);
-                    shaderProgramInit(&this->program);
-                    shaderProgramSetVsh(&this->program, &vshader_dvlb->DVLE[0]);
-
-                    // Get the location of the uniforms
-                    this->uLoc_projection   = shaderInstanceGetUniformLocation(this->program.vertexShader, "projection");
-                    this->uLoc_modelView    = shaderInstanceGetUniformLocation(this->program.vertexShader, "modelView");
-                    this->uLoc_lightVec     = shaderInstanceGetUniformLocation(this->program.vertexShader, "lightVec");
-                    this->uLoc_lightHalfVec = shaderInstanceGetUniformLocation(this->program.vertexShader, "lightHalfVec");
-                    this->uLoc_lightClr     = shaderInstanceGetUniformLocation(this->program.vertexShader, "lightClr");
-                    this->uLoc_material     = shaderInstanceGetUniformLocation(this->program.vertexShader, "material");
-
-                    Mtx_Identity(&this->world);
-                    Mtx_Identity(&this->modelView);
-
-                    Mtx_PerspTilt(&this->projection, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false);
-
-                    delete[] buffer;
-                    return true;
-                }
+                if (!buffer)
+                    std::cout << "Unable to allocate memory for shader buffer file" << std::endl;
                 else
                 {
-                    delete[] buffer;
-                    return false;
+                    if (!file.read(reinterpret_cast<char *>(buffer), size)) 
+                        std::cout << "Unable to read the shader file" << std::endl;
+                    else
+                    {
+                        this->vshader_dvlb = DVLB_ParseFile(reinterpret_cast<uint32_t *>(buffer), size / 4);
+                        if (this->vshader_dvlb == nullptr)
+                            std::cout << "Unable to parse the shader" << std::endl;
+                        else
+                        {
+                            Result r1 = shaderProgramInit(&this->program);
+                            Result r2 = shaderProgramSetVsh(&this->program, &vshader_dvlb->DVLE[0]);
+                            if (r1 || r2)
+                                std::cout << "Unable to init the shader" << std::endl;
+                            else
+                            {
+                                // Get the location of the uniforms
+                                this->uLoc_projection   = shaderInstanceGetUniformLocation(this->program.vertexShader, "projection");
+                                this->uLoc_modelView    = shaderInstanceGetUniformLocation(this->program.vertexShader, "modelView");
+                                this->uLoc_lightVec     = shaderInstanceGetUniformLocation(this->program.vertexShader, "lightVec");
+                                this->uLoc_lightHalfVec = shaderInstanceGetUniformLocation(this->program.vertexShader, "lightHalfVec");
+                                this->uLoc_lightClr     = shaderInstanceGetUniformLocation(this->program.vertexShader, "lightClr");
+                                this->uLoc_material     = shaderInstanceGetUniformLocation(this->program.vertexShader, "material");
+
+                                result = true;
+                            }
+                        }
+                    }
                 }
+                delete[] buffer;
             }
-            else
-                return false;
+            return result;
+        }
+
+        void initDefaults()
+        {
+            Mtx_Identity(&this->world);
+            Mtx_Identity(&this->modelView);
+
+            Mtx_PerspTilt(&this->projection, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false);
         }
 
         void freeShaderProgram()
@@ -102,7 +123,7 @@ class Render3D
             AttrInfo_Init(attrInfo);
             AttrInfo_AddLoader(attrInfo, 0, GPU_UNSIGNED_BYTE, 3); // v0=position
             AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2); // v1=texcoord
-            AttrInfo_AddLoader(attrInfo, 2, GPU_UNSIGNED_BYTE, 3); // v2=normal
+            AttrInfo_AddLoader(attrInfo, 2, GPU_UNSIGNED_BYTE, 1); // v2=normal
 
             C3D_TexBind(0, NULL);
 
