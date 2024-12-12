@@ -7,6 +7,10 @@
 
 #include <3ds.h>
 #include <citro3d.h>
+#include <citro2d.h>
+#include <tex3ds.h>
+
+#include <cstdio>
 
 #include "geometry.hpp"
 
@@ -82,6 +86,13 @@ class Render3D
             Mtx_Identity(&this->modelView);
 
             Mtx_PerspTilt(&this->projection, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false);
+
+            //C2D_SpriteSheet atlasSheet = C2D_SpriteSheetLoad();
+            //C2D_Image img = C2D_SpriteSheetGetImage(atlasSheet, 0);
+            FILE *texFile = fopen("romfs:/textures/debug.t3x", "rb");
+            Tex3DS_TextureImportStdio(texFile, &this->stone_tex, NULL, false);
+            C3D_TexSetFilter(&this->stone_tex, GPU_NEAREST, GPU_NEAREST);
+            C3D_TexSetWrap(&this->stone_tex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
         }
 
         void freeShaderProgram()
@@ -125,12 +136,12 @@ class Render3D
             AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2); // v1=texcoord
             AttrInfo_AddLoader(attrInfo, 2, GPU_UNSIGNED_BYTE, 1); // v2=normal
 
-            C3D_TexBind(0, NULL);
+            C3D_TexBind(0, &this->stone_tex);
 
             C3D_TexEnv* env = C3D_GetTexEnv(0);
             C3D_TexEnvInit(env);
-            C3D_TexEnvSrc(env, C3D_Both, GPU_PRIMARY_COLOR);
-            C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
+            C3D_TexEnvSrc(env, C3D_Both, GPU_TEXTURE0, GPU_PRIMARY_COLOR);
+            C3D_TexEnvFunc(env, C3D_Both, GPU_MODULATE);
 
             C3D_CullFace(GPU_CULL_BACK_CCW);
 
@@ -188,4 +199,5 @@ class Render3D
         int uLoc_lightVec, uLoc_lightHalfVec, uLoc_lightClr, uLoc_material;
         C3D_Mtx material;
         C3D_Mtx world, projection, cameraView, modelView;
+        C3D_Tex stone_tex;
 };

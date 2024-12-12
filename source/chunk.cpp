@@ -55,7 +55,6 @@ void Chunk::generateChunkData()
     noise.SetSeed(seed);
 
     int8_t octaves = 4;
-    double heightOffset = 0.5;
 
     noise.SetFractalOctaves(octaves);
 
@@ -66,32 +65,39 @@ void Chunk::generateChunkData()
             int ax = x + this->CHUNK_X * this->CHUNK_SIZE;
             int az = z + this->CHUNK_Z * this->CHUNK_SIZE;
 
+            double baseHeight = 60;
+
             noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-            noise.SetFrequency(0.05f);
+            noise.SetFrequency(0.005f);
             double continentalNoise = noise.GetNoise((float)ax, (float)az);
-            double baseDensity = (continentalNoise + 1.0) * 0.5;
+            double finalHeight = baseHeight + (continentalNoise * 10);
             
-            noise.SetFrequency(0.04f);
+            noise.SetFrequency(0.01f);
             double erosionNoise = noise.GetNoise((float)ax, (float)az);
-            double erosionFactor = 0.1 * (1.0 - erosionNoise);
+            finalHeight -= ((erosionNoise + 1) * 2.5);
 
-            noise.SetFrequency(0.1f);
+            noise.SetFrequency(0.05f);
             double peaksAndValleysNoise = noise.GetNoise((float)ax, (float)az);
-            double peaksAndValleyFactor = 0.5 + peaksAndValleysNoise * 0.5;
+            finalHeight += (peaksAndValleysNoise * 2);
 
-            noise.SetFrequency(0.1f);
-            for (uint16_t y = 0; y < this->CHUNK_HEIGHT; y++)
+            finalHeight = std::min((double)this->CHUNK_HEIGHT, finalHeight);
+
+            noise.SetFrequency(0.035f);
+            for (uint16_t y = 0; y < finalHeight; y++)
             {
                 noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
                 double caveNoise = noise.GetNoise((float)ax, (float)y, (float)az);
-                double caveNoiseFactor = (caveNoise + 1.0) * 0.5;
+                double heightFactor = 0.1 * (finalHeight / this->CHUNK_HEIGHT * y);
+                double density = caveNoise + heightFactor;
 
-                double density = baseDensity + peaksAndValleyFactor - erosionFactor * (y * 0.01) - caveNoiseFactor * 0.3;
-
-                if (density > 0.4)
-                    this->setChunkBlock(x, y, z, 1);
-                else
+                if (density > -0.2 && density < 0.2)
                     this->setChunkBlock(x, y, z, 0);
+                else if (density < -0.9)
+                    this->setChunkBlock(x, y, z, 0);
+                else if (density > 0.9 && density <= 1.0)
+                    this->setChunkBlock(x, y, z, 0);
+                else
+                    this->setChunkBlock(x, y, z, 1);
             }
         }
     }

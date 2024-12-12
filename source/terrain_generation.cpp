@@ -7,7 +7,7 @@ uint8_t getBlock(int seed, int x, int y, int z)
 
     int8_t octaves = 2;
     
-    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     noise.SetFractalOctaves(octaves);
     noise.SetFrequency(0.04f);
     double continentalNoise = noise.GetNoise((float)x, (float)z);

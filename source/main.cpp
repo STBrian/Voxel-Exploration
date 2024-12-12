@@ -48,17 +48,14 @@ int main()
 
     g_textBuffer = C2D_TextBufNew(4096);
 
-    //C2D_SpriteSheet atlasSheet = C2D_SpriteSheetLoad("./atlas.t3x");
-    //C2D_Image img = C2D_SpriteSheetGetImage(atlasSheet, 0);
-    //C3D_Tex texture = *img.tex;
     std::string shaderFp = "romfs:/shaders/full_block.shbin";
 
     bool success = Render3D::getInstance().loadShader(shaderFp);
     Render3D::getInstance().initDefaults();
 
     std::cout << "Generating chunk data..." << std::endl;
-    for (int i = 0; i < 8; i++)
-        for (int j = 0; j < 8; j++)
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
             chunks.emplace_back(i, j);
 
     for (Chunk& chunk : chunks)
@@ -193,7 +190,7 @@ int main()
                 std::cout << "One chunk task has ended" << std::endl;
             }
             std::cout << "All done!" << std::endl;
-            //reloadShader = true;
+            reloadShader = true;
         }
 	}
 
