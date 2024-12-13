@@ -87,9 +87,7 @@ class Render3D
 
             Mtx_PerspTilt(&this->projection, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false);
 
-            //C2D_SpriteSheet atlasSheet = C2D_SpriteSheetLoad();
-            //C2D_Image img = C2D_SpriteSheetGetImage(atlasSheet, 0);
-            FILE *texFile = fopen("romfs:/textures/debug.t3x", "rb");
+            FILE *texFile = fopen("romfs:/textures/stone.t3x", "rb");
             Tex3DS_TextureImportStdio(texFile, &this->stone_tex, NULL, false);
             C3D_TexSetFilter(&this->stone_tex, GPU_NEAREST, GPU_NEAREST);
             C3D_TexSetWrap(&this->stone_tex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
@@ -153,8 +151,8 @@ class Render3D
             C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, this->uLoc_projection, &WVP);
             C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, this->uLoc_modelView, &this->modelView);
             C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, this->uLoc_material, &this->material);
-            C3D_FVUnifSet(GPU_VERTEX_SHADER, this->uLoc_lightVec,     0.0f, -1.0f, 0.0f, 0.0f);
-            C3D_FVUnifSet(GPU_VERTEX_SHADER, this->uLoc_lightHalfVec, 0.0f, 1.0f, 0.0f, 0.0f);
+            C3D_FVUnifSet(GPU_VERTEX_SHADER, this->uLoc_lightVec,     0.0f, 1.0f, 0.0f, 0.0f);
+            C3D_FVUnifSet(GPU_VERTEX_SHADER, this->uLoc_lightHalfVec, 0.0f, -1.0f, 0.0f, 0.0f);
             C3D_FVUnifSet(GPU_VERTEX_SHADER, this->uLoc_lightClr,     1.0f, 1.0f,  1.0f, 1.0f);
 
             C3D_BufInfo *bufInfo = C3D_GetBufInfo();

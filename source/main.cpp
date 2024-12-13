@@ -197,7 +197,7 @@ int main()
     for (Chunk& chunk : chunks)
         chunk.freeRenderObject();
 
-	// Free the shader program
+	// Free the shader program. Enable this line crashes the game at exit :D
     //Render3D::getInstance().freeShaderProgram();
 
     C2D_TextBufDelete(g_textBuffer);

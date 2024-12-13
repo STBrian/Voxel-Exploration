@@ -27,7 +27,7 @@ inline void addCubeFaceToMesh(CompressedVertex *vbo, uint16_t *ibo, uint32_t vbo
     {
         vbo[vbo_idx + i] = {
             .position = {(uint8_t)(face.vertex[i].position[0] + x + 0.5), (uint8_t)(face.vertex[i].position[1] + y + 0.5), (uint8_t)(face.vertex[i].position[2] + z + 0.5)},
-            .texcoord = {face.vertex[i].texcoord[0], face.vertex[i].texcoord[0]},
+            .texcoord = {face.vertex[i].texcoord[0], face.vertex[i].texcoord[1]},
             .normal = compressNormals(face.vertex[i].normal[0], face.vertex[i].normal[1], face.vertex[i].normal[2])
         };
     }
