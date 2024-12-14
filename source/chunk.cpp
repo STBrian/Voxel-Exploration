@@ -65,29 +65,29 @@ void Chunk::generateChunkData()
             int ax = x + this->CHUNK_X * this->CHUNK_SIZE;
             int az = z + this->CHUNK_Z * this->CHUNK_SIZE;
 
-            double baseHeight = 60;
+            double baseHeight = 70;
 
             noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
             noise.SetFrequency(0.005f);
             double continentalNoise = noise.GetNoise((float)ax, (float)az);
-            double finalHeight = baseHeight + (continentalNoise * 10);
+            double finalHeight = baseHeight + (continentalNoise * 20);
             
             noise.SetFrequency(0.01f);
             double erosionNoise = noise.GetNoise((float)ax, (float)az);
-            finalHeight -= ((erosionNoise + 1) * 2.5);
+            finalHeight -= ((erosionNoise + 1) * 4);
 
             noise.SetFrequency(0.05f);
             double peaksAndValleysNoise = noise.GetNoise((float)ax, (float)az);
-            finalHeight += (peaksAndValleysNoise * 2);
+            finalHeight += (peaksAndValleysNoise * 4);
 
             finalHeight = std::min((double)this->CHUNK_HEIGHT, finalHeight);
 
-            noise.SetFrequency(0.035f);
+            noise.SetFrequency(0.02f);
             for (uint16_t y = 0; y < finalHeight; y++)
             {
                 noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
                 double caveNoise = noise.GetNoise((float)ax, (float)y, (float)az);
-                double heightFactor = 0.1 * (finalHeight / this->CHUNK_HEIGHT * y);
+                double heightFactor = 0.115 * (finalHeight / this->CHUNK_HEIGHT * y);
                 double density = caveNoise + heightFactor;
 
                 if (density > -0.2 && density < 0.2)

@@ -25,7 +25,7 @@
 	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
 
 C2D_TextBuf g_textBuffer;
-C2D_Text g_fpsText;
+C2D_Text g_fpsText[3];
 
 std::vector<Chunk> chunks;
 static Camera camera;
@@ -75,6 +75,13 @@ int main()
     std::chrono::time_point<std::chrono::high_resolution_clock> lastTime;
     float fps = 0.0f;
     std::string fpsString = "FPS: 0";
+    std::string coordsString = "0, 0, 0";
+
+    camera = {
+        .position = FVec3_New(0.0f, 70.0f, 0.0f),
+        .yaw = 0.0f,
+        .pitch = 0.0f
+    };
 
     int clearColor = 0x000000FF;
     float sensitivility = 0.05f;
@@ -135,19 +142,19 @@ int main()
         up = FVec3_Normalize(up);
         
         if (kHeld & KEY_UP)
-            camera.position = FVec3_Add(camera.position, FVec3_Scale(forwardXZ, speed));
-        if (kHeld & KEY_DOWN)
             camera.position = FVec3_Subtract(camera.position, FVec3_Scale(forwardXZ, speed));
+        if (kHeld & KEY_DOWN)
+            camera.position = FVec3_Add(camera.position, FVec3_Scale(forwardXZ, speed));
         if (kHeld & KEY_RIGHT)
-            camera.position = FVec3_Add(camera.position, FVec3_Scale(right, speed));
-        if (kHeld & KEY_LEFT)
             camera.position = FVec3_Subtract(camera.position, FVec3_Scale(right, speed));
+        if (kHeld & KEY_LEFT)
+            camera.position = FVec3_Add(camera.position, FVec3_Scale(right, speed));
         if (kHeld & KEY_A)
-            camera.position = FVec3_Subtract(camera.position, FVec3_New(0.0f, speed, 0.0f));
-        if (kHeld & KEY_B)
             camera.position = FVec3_Add(camera.position, FVec3_New(0.0f, speed, 0.0f));
+        if (kHeld & KEY_B)
+            camera.position = FVec3_Subtract(camera.position, FVec3_New(0.0f, speed, 0.0f));
         
-        Render3D::getInstance().setCameraViewMatrix(FVec3_Negate(camera.position), FVec3_Negate(FVec3_Add(camera.position, forward)), FVec3_Negate(up));
+        Render3D::getInstance().setCameraViewMatrix(camera.position, FVec3_Negate(FVec3_Add(FVec3_Negate(camera.position), forward)), FVec3_Negate(up));
 
         // Render the 3D scene
 		C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
@@ -164,9 +171,14 @@ int main()
         C2D_SceneBegin(target3D);
 
         C2D_TextBufClear(g_textBuffer);
-        C2D_TextParse(&g_fpsText, g_textBuffer, fpsString.c_str());
-        C2D_TextOptimize(&g_fpsText);
-        C2D_DrawText(&g_fpsText, C2D_WithColor, 10.0f, 10.0f, 0.5f, 0.5f, 0.5f, C2D_Color32f(1.0, 1.0, 1.0, 1.0));
+
+        C2D_TextParse(&g_fpsText[0], g_textBuffer, fpsString.c_str());
+        C2D_TextOptimize(&g_fpsText[0]);
+        C2D_DrawText(&g_fpsText[0], C2D_WithColor, 10.0f, 10.0f, 0.5f, 0.5f, 0.5f, C2D_Color32f(1.0, 1.0, 1.0, 1.0));
+
+        C2D_TextParse(&g_fpsText[1], g_textBuffer, coordsString.c_str());
+        C2D_TextOptimize(&g_fpsText[1]);
+        C2D_DrawText(&g_fpsText[1], C2D_WithColor, 10.0f, 220.0f, 0.5f, 0.5f, 0.5f, C2D_Color32f(1.0, 1.0, 1.0, 1.0));
 
 		C3D_FrameEnd(0);
 
@@ -179,6 +191,7 @@ int main()
         lastTime = currentTime;
 
         fpsString = "FPS: " + std::to_string((int)floor(fps));
+        coordsString = std::to_string(camera.position.x) + ", " + std::to_string(camera.position.y) + ", " + std::to_string(camera.position.z);
 
         if (kDown & KEY_SELECT)
         {

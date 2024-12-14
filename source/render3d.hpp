@@ -18,7 +18,6 @@ typedef struct {
     C3D_FVec position;
     float yaw;
     float pitch;
-    C3D_Mtx view;
 } Camera;
 
 class Render3D 
