@@ -67,6 +67,7 @@ chunk.o: \
  C:/devkitPro/libctru/include/3ds/services/nfc.h \
  C:/devkitPro/libctru/include/3ds/services/news.h \
  C:/devkitPro/libctru/include/3ds/services/qtm.h \
+ C:/devkitPro/libctru/include/3ds/services/qtmc.h \
  C:/devkitPro/libctru/include/3ds/services/srvpm.h \
  C:/devkitPro/libctru/include/3ds/services/loader.h \
  C:/devkitPro/libctru/include/3ds/services/mcuhwc.h \
@@ -180,6 +181,7 @@ C:/devkitPro/libctru/include/3ds/services/mvd.h:
 C:/devkitPro/libctru/include/3ds/services/nfc.h:
 C:/devkitPro/libctru/include/3ds/services/news.h:
 C:/devkitPro/libctru/include/3ds/services/qtm.h:
+C:/devkitPro/libctru/include/3ds/services/qtmc.h:
 C:/devkitPro/libctru/include/3ds/services/srvpm.h:
 C:/devkitPro/libctru/include/3ds/services/loader.h:
 C:/devkitPro/libctru/include/3ds/services/mcuhwc.h:
