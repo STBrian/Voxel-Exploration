@@ -6,10 +6,9 @@
 #include <stdbool.h>
 #include <time.h>
 
-#include "string_utils.h"
-
 #include "render3d.h"
 #include "chunk.h"
+#include "string_utils.h"
 
 #define DISPLAY_TRANSFER_FLAGS \
 	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
