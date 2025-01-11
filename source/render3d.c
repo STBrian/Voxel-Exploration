@@ -115,7 +115,7 @@ bool rloadShaderInInstance(RRender3D* render_obj, const char* shaderFp)
                 }
             }
         }
-        free(buffer);
+        //free(buffer); // Note: Do not free the buffer >:c
     }
     return result;
 }

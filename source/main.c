@@ -99,8 +99,7 @@ int main()
 
     bool loadedSuccess = success && chunkDataGenerated;
 
-    bool reloadShader = true;
-    GlobalRender->printDebug = false;
+    bool reloadShader = false;
     while (aptMainLoop() && loadedSuccess)
     {
         if (reloadShader)
@@ -201,7 +200,6 @@ int main()
 
         sprintf(fpsString, "FPS: %.2f", fps);
         sprintf(coordsString, "%.2f, %.2f, %.2f", camera.position.x, camera.position.y, camera.position.z);
-        reloadShader = true;
     }
 
     for (int i = 0; i < 16; i++)
