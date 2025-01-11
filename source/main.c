@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <time.h>
 
+#include "string_utils.h"
+
 #include "render3d.h"
 #include "chunk.h"
 
@@ -39,10 +41,8 @@ int main()
 
     g_textBuffer = C2D_TextBufNew(4096);
 
-    const char shaderFp[] = "romfs:/shaders/full_block.shbin";
-
     grenderPrepare();
-    bool success = gloadShader(shaderFp);
+    bool success = gloadShader("romfs:/shaders/full_block.shbin");
 
     bool chunkDataGenerated = true;
 
@@ -84,8 +84,8 @@ int main()
     struct timespec lastTime, endTime;
     double elapsed;
     float fps = 0.0f;
-    char fpsString[10] = "FPS: 0";
-    char coordsString[30] = "0, 0, 0";
+    sstring fpsString = sfromcstr("FPS: 0");
+    sstring coordsString = sfromcstr("0, 0, 0");
 
     camera.position = FVec3_New(0.0f, 70.0f, 0.0f);
     camera.yaw = 0.0f;
@@ -99,15 +99,8 @@ int main()
 
     bool loadedSuccess = success && chunkDataGenerated;
 
-    bool reloadShader = false;
     while (aptMainLoop() && loadedSuccess)
     {
-        if (reloadShader)
-        {
-            gfreeShaderProgram();
-            gloadShader(shaderFp);
-            reloadShader = false;
-        }
         clock_gettime(CLOCK_MONOTONIC, &lastTime);
 
         hidCstickRead(&cStick);
@@ -169,11 +162,9 @@ int main()
         C3D_FrameDrawOn(target3D);
 
         for (int i = 0; i < 16; i++)
-        {
             ChunkRender(&chunks[i]);
-        }
 
-        // Need to configure every frame since change Citro3d shader broke 2d rendering
+        // Need to configure every frame since change Citro3d shader break 2d rendering
         C2D_Prepare();
 
         // Render the 2D scene
@@ -181,15 +172,14 @@ int main()
 
         C2D_TextBufClear(g_textBuffer);
 
-        C2D_TextParse(&g_fpsText[0], g_textBuffer, fpsString);
+        C2D_TextParse(&g_fpsText[0], g_textBuffer, fpsString->cstr);
         C2D_TextOptimize(&g_fpsText[0]);
         C2D_DrawText(&g_fpsText[0], C2D_WithColor, 10.0f, 10.0f, 0.5f, 0.5f, 0.5f, C2D_Color32f(1.0, 1.0, 1.0, 1.0));
 
-        C2D_TextParse(&g_fpsText[1], g_textBuffer, coordsString);
+        C2D_TextParse(&g_fpsText[1], g_textBuffer, coordsString->cstr);
         C2D_TextOptimize(&g_fpsText[1]);
         C2D_DrawText(&g_fpsText[1], C2D_WithColor, 10.0f, 220.0f, 0.5f, 0.5f, 0.5f, C2D_Color32f(1.0, 1.0, 1.0, 1.0));
         
-
 		C3D_FrameEnd(0);
 
         // Calculate frame time
@@ -198,8 +188,8 @@ int main()
 
         fps = 1.0f / elapsed;
 
-        sprintf(fpsString, "FPS: %.2f", fps);
-        sprintf(coordsString, "%.2f, %.2f, %.2f", camera.position.x, camera.position.y, camera.position.z);
+        sassignformat(fpsString, "FPS: %.2f", fps);
+        sassignformat(coordsString, "%.2f, %.2f, %.2f", camera.position.x, camera.position.y, camera.position.z);
     }
 
     for (int i = 0; i < 16; i++)
@@ -208,9 +198,15 @@ int main()
         printf("Chunk %d deleted\n", i);
     }
 
+    // Free global render resources
     gfreeShaderProgram();
     grenderDestroy();
 
+    // Free strings
+    sdestroy(fpsString);
+    sdestroy(coordsString);
+
+    // Delete citro2d text buffers
     C2D_TextBufDelete(g_textBuffer);
 
 	// Deinitialize graphics

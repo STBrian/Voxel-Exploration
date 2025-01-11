@@ -18,6 +18,7 @@ typedef struct g_camera {
 } RCamera;
 
 typedef struct g_render3d {
+    uint32_t* shaderData;
     DVLB_s* vshader_dvlb;
     shaderProgram_s program;
     int uLoc_projection;

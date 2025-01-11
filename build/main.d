@@ -109,9 +109,10 @@ main.o: \
  C:/devkitPro/libctru/include/c2d/sprite.h \
  C:/devkitPro/libctru/include/c2d/text.h \
  C:/devkitPro/libctru/include/c2d/font.h \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render3d.h \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/geometry.h \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/chunk.h
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/string_utils.h \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/render3d.h \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/geometry.h \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/chunk.h
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -221,6 +222,7 @@ C:/devkitPro/libctru/include/c2d/spritesheet.h:
 C:/devkitPro/libctru/include/c2d/sprite.h:
 C:/devkitPro/libctru/include/c2d/text.h:
 C:/devkitPro/libctru/include/c2d/font.h:
-D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render3d.h:
-D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/geometry.h:
-D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/chunk.h:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/string_utils.h:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/render3d.h:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/geometry.h:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/chunk.h:

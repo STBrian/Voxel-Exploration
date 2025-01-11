@@ -1,6 +1,6 @@
 chunk.o: \
  D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/chunk.c \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/chunk.h \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/chunk.h \
  C:/devkitPro/libctru/include/citro3d.h \
  C:/devkitPro/libctru/include/c3d/types.h \
  C:/devkitPro/libctru/include/3ds.h \
@@ -103,9 +103,9 @@ chunk.o: \
  C:/devkitPro/libctru/include/c3d/fog.h \
  C:/devkitPro/libctru/include/c3d/framebuffer.h \
  C:/devkitPro/libctru/include/c3d/renderqueue.h \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/geometry.h \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/geometry.h \
  D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/FastNoiseLite.h \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render3d.h \
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/render3d.h \
  C:/devkitPro/libctru/include/citro2d.h \
  C:/devkitPro/libctru/include/tex3ds.h \
  C:/devkitPro/libctru/include/c2d/base.h \
@@ -113,8 +113,8 @@ chunk.o: \
  C:/devkitPro/libctru/include/c2d/sprite.h \
  C:/devkitPro/libctru/include/c2d/text.h \
  C:/devkitPro/libctru/include/c2d/font.h \
- D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render_utils.h
-D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/chunk.h:
+ D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/render_utils.h
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/chunk.h:
 C:/devkitPro/libctru/include/citro3d.h:
 C:/devkitPro/libctru/include/c3d/types.h:
 C:/devkitPro/libctru/include/3ds.h:
@@ -217,9 +217,9 @@ C:/devkitPro/libctru/include/c3d/lightlut.h:
 C:/devkitPro/libctru/include/c3d/fog.h:
 C:/devkitPro/libctru/include/c3d/framebuffer.h:
 C:/devkitPro/libctru/include/c3d/renderqueue.h:
-D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/geometry.h:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/geometry.h:
 D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/FastNoiseLite.h:
-D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render3d.h:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/render3d.h:
 C:/devkitPro/libctru/include/citro2d.h:
 C:/devkitPro/libctru/include/tex3ds.h:
 C:/devkitPro/libctru/include/c2d/base.h:
@@ -227,4 +227,4 @@ C:/devkitPro/libctru/include/c2d/spritesheet.h:
 C:/devkitPro/libctru/include/c2d/sprite.h:
 C:/devkitPro/libctru/include/c2d/text.h:
 C:/devkitPro/libctru/include/c2d/font.h:
-D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/source/render_utils.h:
+D:/Users/User/Documentos/CarpetaDeBrian/GitHub/Voxel-Exploration/include/render_utils.h:

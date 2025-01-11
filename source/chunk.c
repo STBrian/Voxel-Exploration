@@ -133,7 +133,6 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
             {
                 for (uint8_t x = 0; x < chunk_s->size; x++)
                 {
-                    int row_z = 0;
                     for (uint8_t z = 0; z < chunk_s->size; z++)
                     {
                         uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);

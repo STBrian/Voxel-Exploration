@@ -25,6 +25,8 @@ void rrenderInit(RRender3D* render_obj)
     C3D_TexSetFilter(&render_obj->blockTex, GPU_NEAREST, GPU_NEAREST);
     C3D_TexSetWrap(&render_obj->blockTex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
 
+    render_obj->shaderData = NULL;
+
     render_obj->printDebug = true;
 }
 
@@ -62,8 +64,8 @@ bool rloadShaderInInstance(RRender3D* render_obj, const char* shaderFp)
         size_t size = ftell(file);
         fseek(file, 0, SEEK_SET);
 
-        uint8_t* buffer = (uint8_t*)malloc(sizeof(uint8_t)*size);
-        if (!buffer)
+        render_obj->shaderData = (uint32_t*)malloc(sizeof(uint32_t)* size/4);
+        if (render_obj->shaderData == NULL)
         {
             if (render_obj->printDebug)
             {
@@ -72,7 +74,7 @@ bool rloadShaderInInstance(RRender3D* render_obj, const char* shaderFp)
         }
         else
         {
-            if (fread(buffer, sizeof(uint8_t), size, file) < size)
+            if (fread(render_obj->shaderData, sizeof(uint32_t), size/4, file) < size/4)
             {
                 if (render_obj->printDebug)
                 {
@@ -81,7 +83,7 @@ bool rloadShaderInInstance(RRender3D* render_obj, const char* shaderFp)
             }
             else
             {
-                render_obj->vshader_dvlb = DVLB_ParseFile((uint32_t*)buffer, size / 4);
+                render_obj->vshader_dvlb = DVLB_ParseFile(render_obj->shaderData, size/4);
                 if (render_obj->vshader_dvlb == NULL)
                 {
                     if (render_obj->printDebug)
@@ -115,6 +117,7 @@ bool rloadShaderInInstance(RRender3D* render_obj, const char* shaderFp)
                 }
             }
         }
+        fclose(file);
         //free(buffer); // Note: Do not free the buffer >:c
     }
     return result;
@@ -129,6 +132,8 @@ void rfreeShaderProgramInInstance(RRender3D* render_obj)
 {
     shaderProgramFree(&render_obj->program);
     DVLB_Free(render_obj->vshader_dvlb);
+    free(render_obj->shaderData);
+    render_obj->shaderData = NULL;
 }
 
 void gfreeShaderProgram()
