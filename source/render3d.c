@@ -20,7 +20,7 @@ void rrenderInit(RRender3D* render_obj)
 
     Mtx_PerspTilt(&render_obj->projection, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false);
 
-    FILE *texFile = fopen("romfs:/textures/stone.t3x", "rb");
+    FILE *texFile = fopen("romfs:/assets/debug/stone.t3x", "rb");
     Tex3DS_TextureImportStdio(texFile, &render_obj->blockTex, NULL, false);
     C3D_TexSetFilter(&render_obj->blockTex, GPU_NEAREST, GPU_NEAREST);
     C3D_TexSetWrap(&render_obj->blockTex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);

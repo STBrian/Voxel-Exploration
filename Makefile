@@ -189,9 +189,14 @@ $(SHADERS_DST)/%.shbin: $(SHADERS_DIR)/%.v.pica
 	picasso -o $@ $<
 
 #---------------------------------------------------------------------------------
+resources:
+	@echo building resources...
+	@python assets/makeresources.py
+
+#---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(GFXBUILD) $(SHADERS_DST)
+	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(GFXBUILD) $(SHADERS_DST) $(ROMFS)
 
 #---------------------------------------------------------------------------------
 $(GFXBUILD)/%.t3x	$(BUILD)/%.h	:	%.t3s
