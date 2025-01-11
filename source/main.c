@@ -100,6 +100,7 @@ int main()
     bool loadedSuccess = success && chunkDataGenerated;
 
     bool reloadShader = true;
+    GlobalRender->printDebug = false;
     while (aptMainLoop() && loadedSuccess)
     {
         if (reloadShader)
@@ -188,6 +189,7 @@ int main()
         C2D_TextParse(&g_fpsText[1], g_textBuffer, coordsString);
         C2D_TextOptimize(&g_fpsText[1]);
         C2D_DrawText(&g_fpsText[1], C2D_WithColor, 10.0f, 220.0f, 0.5f, 0.5f, 0.5f, C2D_Color32f(1.0, 1.0, 1.0, 1.0));
+        
 
 		C3D_FrameEnd(0);
 
@@ -209,6 +211,7 @@ int main()
     }
 
     gfreeShaderProgram();
+    grenderDestroy();
 
     C2D_TextBufDelete(g_textBuffer);
 
