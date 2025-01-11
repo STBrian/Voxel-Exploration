@@ -75,6 +75,8 @@
         "citro3d.h": "c",
         "condition_variable": "cpp",
         "future": "cpp",
-        "mutex": "cpp"
+        "mutex": "cpp",
+        "fastnoiselite.h": "c",
+        "render3d.h": "c"
     }
 }

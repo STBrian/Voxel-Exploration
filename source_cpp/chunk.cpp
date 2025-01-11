@@ -4,7 +4,7 @@
 #include <string>
 #include <algorithm>
 
-#include "FastNoiseLite.h"
+#include "FastNoiseLite.hpp"
 
 #include "render3d.hpp"
 #include "render_utils.hpp"
