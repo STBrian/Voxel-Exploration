@@ -9,6 +9,7 @@
 #include "render3d.h"
 #include "chunk.h"
 #include "string_utils.h"
+#include "dynalist.h"
 
 #define DISPLAY_TRANSFER_FLAGS \
 	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
@@ -19,7 +20,7 @@
 static C2D_TextBuf g_textBuffer;
 static C2D_Text g_fpsText[3];
 
-static Chunk* chunks;
+static DynaList chunks;
 static RCamera camera;
 
 int main()
@@ -44,40 +45,34 @@ int main()
 
     bool chunkDataGenerated = true;
 
-    chunks = (Chunk*)malloc(sizeof(Chunk)*4*4);
-    if (!chunks)
-        printf("Unable to reserve memory for chunks\n");
-    else
+    DListInit(&chunks, sizeof(Chunk));
+    for (int i = 0; i < 4; i++)
     {
-        for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
         {
-            for (int j = 0; j < 4; j++)
-            {
-                Chunk currentChunk;
-                ChunkInitDefault(&currentChunk);
-                currentChunk.x = i;
-                currentChunk.z = j;
-                chunks[i * 4 + j] = currentChunk;
-            }
-            printf("Chunks initialized\n");
+            Chunk* currentChunk = DListAppendNew(chunks);
+            ChunkInitDefault(currentChunk);
+            currentChunk->x = i;
+            currentChunk->z = j;
         }
-
-        printf("Generating chunk data...\n");
-        for (int i = 0; i < 16; i++)
-        {
-            ChunkGenerateTerrain(&chunks[i], 2342);
-            printf("Chunk %d terrain data generated\n", i+1);
-        }
-
-        printf("Generating render chunk data...\n");
-        for (int i = 0; i < 16; i++)
-        {
-            ChunkGenerateRenderObject(&chunks[i]);
-            printf("Chunk %d mesh data generated\n", i+1);
-        }
-        chunkDataGenerated = true;
-        printf("All done!\n");
     }
+    printf("Chunks initialized\n");
+
+    printf("Generating chunk data...\n");
+    for (int i = 0; i < 16; i++)
+    {
+        ChunkGenerateTerrain(DListGet(chunks, i), 2342);
+        printf("Chunk %d terrain data generated\n", i+1);
+    }
+
+    printf("Generating chunk mesh data...\n");
+    for (int i = 0; i < 16; i++)
+    {
+        ChunkGenerateRenderObject(DListGet(chunks, i));
+        printf("Chunk %d mesh data generated\n", i+1);
+    }
+    chunkDataGenerated = true;
+    printf("All done!\n");
 
     struct timespec lastTime, endTime;
     double elapsed;
@@ -160,7 +155,7 @@ int main()
         C3D_FrameDrawOn(target3D);
 
         for (int i = 0; i < 16; i++)
-            ChunkRender(&chunks[i], &camera);
+            ChunkRender(DListGet(chunks, i), &camera);
 
         // Render the 2D scene
         C2D_Prepare();
@@ -190,7 +185,7 @@ int main()
 
     for (int i = 0; i < 16; i++)
     {
-        ChunkDestroy(&chunks[i]);
+        ChunkDestroy(DListGet(chunks, i));
         printf("Chunk %d deleted\n", i);
     }
 
@@ -201,6 +196,9 @@ int main()
     // Free strings
     sdestroy(fpsString);
     sdestroy(coordsString);
+
+    // Free lists
+    DListFree(chunks);
 
     // Delete citro2d text buffers
     C2D_TextBufDelete(g_textBuffer);
