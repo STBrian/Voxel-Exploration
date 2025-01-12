@@ -1,1 +1,1 @@
-Just a homebrew voxel test for the Nintendo 3DS
+A test for a Homebrew Voxel Engine for Nintendo 3DS
