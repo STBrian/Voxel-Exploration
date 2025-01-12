@@ -3,10 +3,11 @@
 #include <3ds.h>
 #include <citro3d.h>
 
+#include <math.h>
+
 #define FNL_IMPL
 #include "FastNoiseLite.h"
 
-#include "render3d.h"
 #include "render_utils.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -358,23 +359,25 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
     }
 }
 
-void ChunkRender(Chunk* chunk_s)
+void ChunkRender(Chunk* chunk_s, RCamera* actorCamera)
 {
     if (chunk_s->render_ready)
     {
         uint8_t fragment_n = chunk_s->height / chunk_s->size;
         for (uint8_t fragment = 0; fragment < fragment_n; fragment++)
         {
-            if (chunk_s->facesPerFragment[fragment] > 0)
-            {
-                C3D_Mtx world;
-                Mtx_Identity(&world);
-                Mtx_Translate(&world, chunk_s->size * chunk_s->x - 0.5, chunk_s->size * fragment - 0.5, chunk_s->size * chunk_s->z - 0.5, false);
-                Mtx_RotateY(&world, C3D_AngleFromDegrees(0.0f), true);
+            double fragDistance = fabs(fragment * chunk_s->size - actorCamera->position.y + chunk_s->size / 2);
+            if (fragDistance < chunk_s->size * 2) {
+                if (chunk_s->facesPerFragment[fragment] > 0)
+                {
+                    C3D_Mtx world;
+                    Mtx_Identity(&world);
+                    Mtx_Translate(&world, chunk_s->size * chunk_s->x - 0.5, chunk_s->size * fragment - 0.5, chunk_s->size * chunk_s->z - 0.5, false);
+                    Mtx_RotateY(&world, C3D_AngleFromDegrees(0.0f), true);
 
-                // TODO: Rewrite 3D render to C
-                gsetModelViewMatrx(&world);
-                grenderOptimizedInstance(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], chunk_s->facesPerFragment[fragment] * 6);
+                    gsetModelViewMatrx(&world);
+                    grenderOptimizedInstance(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], chunk_s->facesPerFragment[fragment] * 6);
+                }
             }
         }
     }

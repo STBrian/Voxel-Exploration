@@ -31,7 +31,6 @@ int main()
 	gfxInitDefault();
 	C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
     C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
-    C2D_Prepare();
 
     // Initialize the render target
 	C3D_RenderTarget* target3D = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
@@ -41,7 +40,7 @@ int main()
     g_textBuffer = C2D_TextBufNew(4096);
 
     grenderPrepare();
-    bool success = gloadShader("romfs:/shaders/full_block.shbin");
+    bool success = gloadShader("romfs:/shaders/chunk.shbin");
 
     bool chunkDataGenerated = true;
 
@@ -67,14 +66,14 @@ int main()
         for (int i = 0; i < 16; i++)
         {
             ChunkGenerateTerrain(&chunks[i], 2342);
-            printf("Chunk %d generated\n", i);
+            printf("Chunk %d terrain data generated\n", i+1);
         }
 
         printf("Generating render chunk data...\n");
         for (int i = 0; i < 16; i++)
         {
             ChunkGenerateRenderObject(&chunks[i]);
-            printf("Render chunk data %d generated\n", i);
+            printf("Chunk %d mesh data generated\n", i+1);
         }
         chunkDataGenerated = true;
         printf("All done!\n");
@@ -161,12 +160,10 @@ int main()
         C3D_FrameDrawOn(target3D);
 
         for (int i = 0; i < 16; i++)
-            ChunkRender(&chunks[i]);
-
-        // Need to configure every frame since change Citro3d shader break 2d rendering
-        C2D_Prepare();
+            ChunkRender(&chunks[i], &camera);
 
         // Render the 2D scene
+        C2D_Prepare();
         C2D_SceneBegin(target3D);
 
         C2D_TextBufClear(g_textBuffer);

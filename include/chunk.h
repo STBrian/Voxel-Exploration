@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "geometry.h"
+#include "render3d.h"
 
 typedef struct g_chunk {
     uint8_t size;
@@ -31,7 +32,7 @@ void ChunkGenerateTerrain(Chunk* chunk_s, int seed);
 
 void ChunkGenerateRenderObject(Chunk* chunk_s);
 
-void ChunkRender(Chunk* chunk_s);
+void ChunkRender(Chunk* chunk_s, RCamera* actorCamera);
 
 void ChunkFreeRenderObject(Chunk* chunk_s);
 
