@@ -5,39 +5,79 @@
 
 sstring sfromcstr(const char* cstr)
 {
-    sstring newstring = (sstring)calloc(1, sizeof(struct sstring_s));
+    sstring newstring = (sstring)malloc(sizeof(struct sstring_s));
     if (newstring == NULL)
         return NULL;
 
-    newstring->cstr = (char*)malloc(sizeof(char)*(strlen(cstr) + 1));
+    int cstrlen = strlen(cstr) + 1;
+    newstring->cstr = (char*)malloc(sizeof(char)*(cstrlen));
     if (newstring->cstr == NULL)
     {
         free(newstring);
         return NULL;
     }
 
+    newstring->lenght = cstrlen;
     strcpy(newstring->cstr, cstr);
-
     return newstring;
 }
 
 void sassigncstr(sstring string, const char* cstr)
 {
-    if (string->cstr != NULL)
+    int cstrlen = strlen(cstr) + 1;
+    if (string->cstr != NULL && cstrlen != string->lenght)
+    {
         free(string->cstr);
-    
-    string->cstr = (char*)malloc(sizeof(char)*(strlen(cstr) + 1));
+        string->cstr = (char*)malloc(sizeof(char)*(cstrlen));
+    }
+    else if (string->cstr == NULL)
+        string->cstr = (char*)malloc(sizeof(char)*(cstrlen));
+
     if (string->cstr == NULL)
         return;
 
+    string->lenght = cstrlen;
     strcpy(string->cstr, cstr);
     return;
 }
 
 void sassignformat(sstring string, const char* format, ...)
 {
-    if (string->cstr != NULL)
+    va_list args;
+    va_start(args, format);
+
+    // Calculate string size
+    int size = vsnprintf(NULL, 0, format, args) + 1;
+
+    if (string->cstr != NULL && size != string->lenght)
+    {
         free(string->cstr);
+        string->cstr = (char*)malloc(sizeof(char)*(size));
+    }
+    else if (string->cstr == NULL)
+        string->cstr = (char*)malloc(sizeof(char)*(size));
+
+    va_end(args);
+    if (string->cstr == NULL)
+        return;
+
+    // Reset args list
+    va_start(args, format);
+
+    // Write formated string to buffer
+    vsnprintf(string->cstr, size, format, args);
+    string->lenght = size;
+
+    // End args list
+    va_end(args);
+    return;
+}
+
+sstring sformat(const char* format, ...)
+{
+    sstring newstring = (sstring)malloc(sizeof(struct sstring_s));
+    if (newstring == NULL)
+        return NULL;
 
     va_list args;
     va_start(args, format);
@@ -45,22 +85,40 @@ void sassignformat(sstring string, const char* format, ...)
     // Calculate string size
     int size = vsnprintf(NULL, 0, format, args) + 1;
 
-    // Reset args list
-    va_end(args);
-    va_start(args, format);
+    newstring->cstr = (char*)malloc(sizeof(char)*(size));
 
-    string->cstr = (char*)malloc(size);
-    if (string->cstr == NULL) {
-        va_end(args);
-        return;
+    va_end(args);
+    if (newstring->cstr == NULL)
+    {
+        free(newstring);
+        return NULL;
     }
 
+    // Reset args list
+    va_start(args, format);
+
     // Write formated string to buffer
-    vsnprintf(string->cstr, size, format, args);
+    vsnprintf(newstring->cstr, size, format, args);
+    newstring->lenght = size;
 
     // End args list
     va_end(args);
-    return;
+    return newstring;
+}
+
+void scatcstr(sstring string, const char* cstr)
+{
+    if (string->cstr != NULL)
+    {
+        int size = string->lenght + strlen(cstr); // string->lenght already counts '\0' character
+
+        string->cstr = (char*)realloc(string->cstr, sizeof(char) * size);
+        if (string->cstr != NULL)
+        {
+            strcat(string->cstr, cstr);
+            string->lenght = size;
+        }
+    }
 }
 
 void sdestroy(sstring string)
