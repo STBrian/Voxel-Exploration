@@ -43,7 +43,10 @@ void ChunkSetBlock(Chunk* chunk_s, uint8_t x, uint8_t y, uint8_t z, uint8_t bloc
             while (isEmpty && i < size)
             {
                 if (layer[i] != 0)
+                {
                     isEmpty = false;
+                    break;
+                }
                 i++;
             }
 
@@ -375,8 +378,8 @@ void ChunkRender(Chunk* chunk_s, RCamera* actorCamera)
                     Mtx_Translate(&world, chunk_s->size * chunk_s->x - 0.5, chunk_s->size * fragment - 0.5, chunk_s->size * chunk_s->z - 0.5, false);
                     Mtx_RotateY(&world, C3D_AngleFromDegrees(0.0f), true);
 
-                    gsetModelViewMatrx(&world);
-                    grenderOptimizedInstance(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], chunk_s->facesPerFragment[fragment] * 6);
+                    R3D_SetModelViewMatrx(&world);
+                    R3D_DrawOptimizedInstance(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], chunk_s->facesPerFragment[fragment] * 6);
                 }
             }
         }

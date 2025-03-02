@@ -1,5 +1,25 @@
 #include "render_utils.h"
 
+#include <3ds.h>
+#include <tex3ds.h>
+
+#include <stdio.h>
+
+bool loadTexture(C3D_Tex *outTex, const char *fp)
+{
+    FILE *texFile = fopen(fp, "rb");
+    if (texFile)
+    {
+        Tex3DS_TextureImportStdio(texFile, outTex, NULL, false);
+        C3D_TexSetFilter(outTex, GPU_NEAREST, GPU_NEAREST);
+        C3D_TexSetWrap(outTex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
+        fclose(texFile);
+        return true;
+    }
+    else
+        return false;
+}
+
 uint8_t encodeNormalComponent(float value) {
     if (value == -1.0f) return 0;
     if (value == 0.0f) return 1;

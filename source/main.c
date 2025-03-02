@@ -7,6 +7,7 @@
 #include <time.h>
 
 #include "render3d.h"
+#include "render_utils.h"
 #include "chunk.h"
 #include "string_utils.h"
 #include "dynalist.h"
@@ -15,13 +16,11 @@
 	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
 	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
 	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
-#define M_PI_2		1.57079632679489661923
 
 static C2D_TextBuf g_textBuffer;
 static C2D_Text g_fpsText[3];
 
 static DynaList chunks;
-static RCamera camera;
 
 int main()
 {
@@ -40,10 +39,22 @@ int main()
 
     g_textBuffer = C2D_TextBufNew(4096);
 
-    grenderPrepare();
-    bool success = gloadShader("romfs:/shaders/chunk.shbin");
-
-    bool chunkDataGenerated = true;
+    R3D_Init();
+    if (!R3D_LoadShader("romfs:/shaders/chunk.shbin"))
+    {
+        printf("Failed to load shader\n");
+        goto ERROR;
+    }
+    RScene mainScene;
+    R3D_SceneInit(&mainScene, target3D);
+    R3D_SceneSet(&mainScene);
+    RCamera *actorCamera = R3D_GetCurrentCamera();
+    C3D_Tex stoneTex;
+    if (!loadTexture(&stoneTex, "romfs:/assets/debug/stone.t3x"))
+    {
+        printf("Failed to load texture\n");
+        goto ERROR;
+    }
 
     DListInit(&chunks, sizeof(Chunk));
     for (int i = 0; i < 4; i++)
@@ -71,7 +82,6 @@ int main()
         ChunkGenerateRenderObject(DListGet(chunks, i));
         printf("Chunk %d mesh data generated\n", i+1);
     }
-    chunkDataGenerated = true;
     printf("All done!\n");
 
     struct timespec lastTime, endTime;
@@ -80,19 +90,12 @@ int main()
     sstring fpsString = sfromcstr("FPS: 0");
     sstring coordsString = sfromcstr("0, 0, 0");
 
-    camera.position = FVec3_New(0.0f, 70.0f, 0.0f);
-    camera.yaw = 0.0f;
-    camera.pitch = 0.0f;
-
     circlePosition cStick;
 
-    int clearColor = 0x000000FF;
     float sensitivility = 0.05f;
     float speed = 0.3f;
 
-    bool loadedSuccess = success && chunkDataGenerated;
-
-    while (aptMainLoop() && loadedSuccess)
+    while (aptMainLoop())
     {
         clock_gettime(CLOCK_MONOTONIC, &lastTime);
 
@@ -106,56 +109,27 @@ int main()
             break;
 
         // Camera movement
-        camera.pitch -= cStick.dy * sensitivility;
-        camera.yaw -= cStick.dx * sensitivility;
-        if (camera.pitch > 89.0f) camera.pitch = 89.0f;
-        if (camera.pitch < -89.0f) camera.pitch = -89.0f;
-        if (camera.yaw > 360.0f) camera.yaw -= 360.0f;
-        if (camera.yaw < 0.0f) camera.yaw += 360.0f;
+        R3D_RotateCamera(-cStick.dy * sensitivility, -cStick.dx * sensitivility);
 
-        float yawRad = C3D_AngleFromDegrees(camera.yaw);
-        float pitchRad = C3D_AngleFromDegrees(camera.pitch);
-
-        C3D_FVec forward = FVec3_New(
-            cosf(pitchRad) * sinf(yawRad),
-            sinf(pitchRad),
-            cosf(pitchRad) * cosf(yawRad)
-        );
-        C3D_FVec right = FVec3_New(
-            sinf(yawRad - M_PI_2),
-            0.0f,
-            cosf(yawRad - M_PI_2)
-        );
-        C3D_FVec up = FVec3_Cross(forward, right);
-        C3D_FVec forwardXZ = FVec3_New(forward.x, 0.0f, forward.z);
-
-        forward = FVec3_Normalize(forward);
-        forwardXZ = FVec3_Normalize(forwardXZ);
-        right = FVec3_Normalize(right);
-        up = FVec3_Normalize(up);
-        
         if (kHeld & KEY_UP)
-            camera.position = FVec3_Subtract(camera.position, FVec3_Scale(forwardXZ, speed));
+            R3D_CameraMoveForward(-speed);
         if (kHeld & KEY_DOWN)
-            camera.position = FVec3_Add(camera.position, FVec3_Scale(forwardXZ, speed));
+            R3D_CameraMoveForward(speed);
         if (kHeld & KEY_RIGHT)
-            camera.position = FVec3_Subtract(camera.position, FVec3_Scale(right, speed));
+            R3D_CameraMoveSide(-speed);
         if (kHeld & KEY_LEFT)
-            camera.position = FVec3_Add(camera.position, FVec3_Scale(right, speed));
+            R3D_CameraMoveSide(speed);
         if (kHeld & KEY_A)
-            camera.position = FVec3_Add(camera.position, FVec3_New(0.0f, speed, 0.0f));
+            R3D_CameraMoveUpDown(speed);
         if (kHeld & KEY_B)
-            camera.position = FVec3_Subtract(camera.position, FVec3_New(0.0f, speed, 0.0f));
-
-        gsetCameraViewMatrx(camera.position, FVec3_Negate(FVec3_Add(FVec3_Negate(camera.position), forward)), FVec3_Negate(up));
+            R3D_CameraMoveUpDown(-speed);
 
         // Render the 3D scene
-		C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-        C3D_RenderTargetClear(target3D, C3D_CLEAR_ALL, clearColor, 0);
-        C3D_FrameDrawOn(target3D);
+        R3D_SceneBegin();
+        C3D_TexBind(0, &stoneTex);
 
         for (int i = 0; i < 16; i++)
-            ChunkRender(DListGet(chunks, i), &camera);
+            ChunkRender(DListGet(chunks, i), actorCamera);
 
         // Render the 2D scene
         C2D_Prepare();
@@ -180,9 +154,23 @@ int main()
         fps = 1.0f / elapsed;
 
         sassignformat(fpsString, "FPS: %.2f", fps);
-        sassignformat(coordsString, "%.2f, %.2f, %.2f", camera.position.x, camera.position.y, camera.position.z);
+        sassignformat(coordsString, "%.2f, %.2f, %.2f", actorCamera->position.x, actorCamera->position.y, actorCamera->position.z);
     }
+    goto EXIT;
 
+    ERROR:
+    while (aptMainLoop())
+    {
+        hidScanInput();
+
+        u32 kDown = hidKeysDown();
+
+        if (kDown & KEY_START)
+            break;
+    }
+    goto END;
+
+    EXIT:
     for (int i = 0; i < 16; i++)
     {
         ChunkDestroy(DListGet(chunks, i));
@@ -190,8 +178,7 @@ int main()
     }
 
     // Free global render resources
-    gfreeShaderProgram();
-    grenderDestroy();
+    R3D_Finish();
 
     // Free strings
     sdestroy(fpsString);
@@ -203,6 +190,7 @@ int main()
     // Delete citro2d text buffers
     C2D_TextBufDelete(g_textBuffer);
 
+    END:
 	// Deinitialize graphics
 	C3D_Fini();
     C2D_Fini();

@@ -1,8 +1,13 @@
 #pragma once
 
+#include <citro3d.h>
+
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "geometry.h"
+
+bool loadTexture(C3D_Tex *outTex, const char *fp);
 
 uint8_t encodeNormalComponent(float value);
 
