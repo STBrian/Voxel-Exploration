@@ -19,8 +19,7 @@ void ChunkInit(Chunk* chunk_s, uint8_t size, uint16_t height) {
     chunk_s->z = 0;
     chunk_s->render_ready = false;
     chunk_s->layered_blocks_data = calloc(height, sizeof(uint8_t*));
-    chunk_s->VBOs = calloc(height / size, sizeof(CompressedVertex*));
-    chunk_s->IBOs = calloc(height / size, sizeof(uint16_t*));
+    chunk_s->fragments = calloc(height / size, sizeof(CubicInstance));
     chunk_s->facesPerFragment = calloc(height / size, sizeof(uint16_t));
 }
 
@@ -206,8 +205,8 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
         chunk_s->facesPerFragment[fragment] = n_faces;
         if (n_faces > 0)
         {
-            chunk_s->VBOs[fragment] = (CompressedVertex*)linearAlloc(sizeof(CompressedVertex) * n_faces * 4);
-            chunk_s->IBOs[fragment] = (uint16_t*)linearAlloc(sizeof(vindexes) * n_faces);
+            chunk_s->fragments[fragment].vbo = (CompressedVertex*)linearAlloc(sizeof(CompressedVertex) * n_faces * 4);
+            chunk_s->fragments[fragment].ibo = (uint16_t*)linearAlloc(sizeof(vindexes) * n_faces);
 
             int a_faces = 0;
             for (uint8_t y = 0; y < chunk_s->size; y++)
@@ -227,19 +226,13 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
                                 adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z + 1);
                                 if (adyacent_block == 0)
                                 {
-                                    addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                        a_faces * 4, a_faces * 6, a_faces, cube.front, 
-                                        x, y, z
-                                    );
+                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.front, x, y, z);
                                     a_faces++;
                                 }
                             }
                             else
                             {
-                                addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                    a_faces * 4, a_faces * 6, a_faces, cube.front, 
-                                    x, y, z
-                                );
+                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.front, x, y, z);
                                 a_faces++;
                             }
 
@@ -249,19 +242,13 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
                                 adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z - 1);
                                 if (adyacent_block == 0)
                                 {
-                                    addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                        a_faces * 4, a_faces * 6, a_faces, cube.back, 
-                                        x, y, z
-                                    );
+                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.back, x, y, z);
                                     a_faces++;
                                 }
                             }
                             else
                             {
-                                addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                    a_faces * 4, a_faces * 6, a_faces, cube.back, 
-                                    x, y, z
-                                );
+                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.back, x, y, z);
                                 a_faces++;
                             }
 
@@ -271,19 +258,13 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
                                 adyacent_block = ChunkGetBlock(chunk_s, x + 1, y + fragment * chunk_s->size, z);
                                 if (adyacent_block == 0)
                                 {
-                                    addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                        a_faces * 4, a_faces * 6, a_faces, cube.right, 
-                                        x, y, z
-                                    );
+                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.right, x, y, z);
                                     a_faces++;
                                 }
                             }
                             else
                             {
-                                addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                    a_faces * 4, a_faces * 6, a_faces, cube.right, 
-                                    x, y, z
-                                );
+                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.right, x, y, z);
                                 a_faces++;
                             }
                             
@@ -293,19 +274,13 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
                                 adyacent_block = ChunkGetBlock(chunk_s, x - 1, y + fragment * chunk_s->size, z);
                                 if (adyacent_block == 0)
                                 {
-                                    addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                        a_faces * 4, a_faces * 6, a_faces, cube.left, 
-                                        x, y, z
-                                    );
+                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.left, x, y, z);
                                     a_faces++;
                                 }
                             }
                             else
                             {
-                                addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                    a_faces * 4, a_faces * 6, a_faces, cube.left, 
-                                    x, y, z
-                                );
+                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.left, x, y, z);
                                 a_faces++;
                             }
 
@@ -315,19 +290,13 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
                                 adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size + 1, z);
                                 if (adyacent_block == 0)
                                 {
-                                    addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                        a_faces * 4, a_faces * 6, a_faces, cube.top, 
-                                        x, y, z
-                                    );
+                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.top, x, y, z);
                                     a_faces++;
                                 }
                             }
                             else
                             {
-                                addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                    a_faces * 4, a_faces * 6, a_faces, cube.top, 
-                                    x, y, z
-                                );
+                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.top, x, y, z);
                                 a_faces++;
                             }
 
@@ -337,19 +306,13 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
                                 adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size - 1, z);
                                 if (adyacent_block == 0)
                                 {
-                                    addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                        a_faces * 4, a_faces * 6, a_faces, cube.bottom, 
-                                        x, y, z
-                                    );
+                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.bottom, x, y, z);
                                     a_faces++;
                                 }
                             }
                             else
                             {
-                                addCubeFaceToMesh(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], 
-                                    a_faces * 4, a_faces * 6, a_faces, cube.bottom, 
-                                    x, y, z
-                                );
+                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.bottom, x, y, z);
                                 a_faces++;
                             }
                         }
@@ -379,7 +342,7 @@ void ChunkRender(Chunk* chunk_s, RCamera* actorCamera)
                     Mtx_RotateY(&world, C3D_AngleFromDegrees(0.0f), true);
 
                     R3D_SetModelViewMatrx(&world);
-                    R3D_DrawOptimizedInstance(chunk_s->VBOs[fragment], chunk_s->IBOs[fragment], chunk_s->facesPerFragment[fragment] * 6);
+                    R3D_DrawCubicInstance(&chunk_s->fragments[fragment]);
                 }
             }
         }
@@ -391,10 +354,10 @@ void ChunkFreeRenderObject(Chunk* chunk_s)
     uint8_t fragment_n = chunk_s->height / chunk_s->size;
     for (uint8_t fragment = 0; fragment < fragment_n; fragment++)
     {
-        if (chunk_s->VBOs[fragment] != NULL)
-            linearFree(chunk_s->VBOs[fragment]);
-        if (chunk_s->IBOs[fragment] != NULL)
-            linearFree(chunk_s->IBOs[fragment]);
+        if (chunk_s->fragments[fragment].vbo != NULL)
+            linearFree(chunk_s->fragments[fragment].vbo);
+        if (chunk_s->fragments[fragment].ibo != NULL)
+            linearFree(chunk_s->fragments[fragment].ibo);
     }
     chunk_s->render_ready = false;
 }
@@ -402,6 +365,7 @@ void ChunkFreeRenderObject(Chunk* chunk_s)
 void ChunkDestroy(Chunk* chunk_s)
 {
     ChunkFreeRenderObject(chunk_s);
+    free(chunk_s->fragments);
     for (int i = 0; i < chunk_s->height; i++)
         if (chunk_s->layered_blocks_data[i] != NULL)
             free(chunk_s->layered_blocks_data[i]);

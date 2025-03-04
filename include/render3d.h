@@ -22,34 +22,44 @@ typedef struct g_camera {
 typedef struct g_scene {
     C3D_RenderTarget *target;
     RCamera camera;
-    u32 clearColor;
 } RScene;
 
-typedef struct g_render3d {
-    uint32_t *shaderData;
-    DVLB_s *vshaderDvlb;
-    shaderProgram_s *shaderProgram;
-
-    RScene *scene;
-
+struct shader_uniforms_s {
     int uLoc_projection;
     int uLoc_modelView;
     int uLoc_lightVec;
     int uLoc_lightHalfVec;
     int uLoc_lightClr;
     int uLoc_material;
+};
 
-    C3D_Mtx material;
-    C3D_Mtx world;
-    C3D_Mtx projection;
-    C3D_Mtx cameraView;
-    C3D_Mtx modelView;
+typedef struct g_render3d {
+    uint32_t *shaderData;
+    DVLB_s *vshaderDvlb;
+    shaderProgram_s *shaderProgram;
+    struct shader_uniforms_s shader_uniforms;
 
+    RScene *scene;
+
+    C3D_Mtx mtx_material;
+    C3D_Mtx mtx_world;
+    C3D_Mtx mtx_projection;
+    C3D_Mtx mtx_cameraView;
+    C3D_Mtx mtx_modelView;
+
+    u32 clearColor;
     bool printDebug;
 } RRender3D;
 
 extern RRender3D *GlobalRender;
 
+typedef struct g_cubic_instance {
+    CompressedVertex *vbo;
+    uint16_t *ibo;
+    unsigned int faces_count;
+    unsigned int vtx_count;
+    unsigned int idx_count;
+} CubicInstance;
 
 void R3D_Init();
 
@@ -63,7 +73,7 @@ void R3D_SceneSet(RScene *scene);
 
 void R3D_SceneBegin();
 
-void R3D_DrawOptimizedInstance(CompressedVertex *vbo, uint16_t *ibo, int count);
+void R3D_DrawCubicInstance(CubicInstance *instance);
 
 void R3D_Finish();
 

@@ -14,9 +14,8 @@ typedef struct g_chunk {
     int x;
     int z;
     bool render_ready;
+    CubicInstance *fragments;
     uint8_t** layered_blocks_data;
-    CompressedVertex** VBOs;
-    uint16_t** IBOs;
     uint16_t* facesPerFragment;
 } Chunk;
 

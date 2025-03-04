@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#define M_PI_2		1.57079632679489661923
+#define M_PI_2 1.57079632679489661923
 
 RRender3D* GlobalRender = NULL;
 
@@ -23,17 +23,18 @@ void R3D_Init()
         { { 1.0f, 0.0f, 0.0f, 0.0f } }, // Emission
         }
     };
-    GlobalRender->material = material;
-    Mtx_Identity(&GlobalRender->world);
-    Mtx_Identity(&GlobalRender->modelView);
+    GlobalRender->mtx_material = material;
+    Mtx_Identity(&GlobalRender->mtx_world);
+    Mtx_Identity(&GlobalRender->mtx_modelView);
 
-    Mtx_PerspTilt(&GlobalRender->projection, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false); 
+    Mtx_PerspTilt(&GlobalRender->mtx_projection, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false); 
 
     GlobalRender->shaderProgram = NULL;
     GlobalRender->vshaderDvlb = NULL;
     GlobalRender->shaderData = NULL;
 
     GlobalRender->scene = NULL;
+    GlobalRender->clearColor = 0x000000FF;
 
     GlobalRender->printDebug = true;
 }
@@ -46,7 +47,6 @@ void R3D_SceneInit(RScene *scene, C3D_RenderTarget *target)
     scene->camera.yaw = 180.0f;
     scene->camera.pitchMin = -89.0f;
     scene->camera.pitchMax = 89.0f;
-    scene->clearColor = 0x000000FF;
 }
 
 
@@ -115,12 +115,12 @@ bool R3D_LoadShader(const char* shaderFp)
                         else
                         {
                             // Get the location of the uniforms
-                            GlobalRender->uLoc_projection   = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "projection");
-                            GlobalRender->uLoc_modelView    = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "modelView");
-                            GlobalRender->uLoc_lightVec     = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "lightVec");
-                            GlobalRender->uLoc_lightHalfVec = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "lightHalfVec");
-                            GlobalRender->uLoc_lightClr     = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "lightClr");
-                            GlobalRender->uLoc_material     = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "material");
+                            GlobalRender->shader_uniforms.uLoc_projection   = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "projection");
+                            GlobalRender->shader_uniforms.uLoc_modelView    = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "modelView");
+                            GlobalRender->shader_uniforms.uLoc_lightVec     = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "lightVec");
+                            GlobalRender->shader_uniforms.uLoc_lightHalfVec = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "lightHalfVec");
+                            GlobalRender->shader_uniforms.uLoc_lightClr     = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "lightClr");
+                            GlobalRender->shader_uniforms.uLoc_material     = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "material");
 
                             result = true;
                         }
@@ -153,7 +153,7 @@ void R3D_SceneSet(RScene *scene)
 void R3D_SceneBegin()
 {
     C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-    C3D_RenderTargetClear(GlobalRender->scene->target, C3D_CLEAR_ALL, GlobalRender->scene->clearColor, 0);
+    C3D_RenderTargetClear(GlobalRender->scene->target, C3D_CLEAR_ALL, GlobalRender->clearColor, 0);
     C3D_FrameDrawOn(GlobalRender->scene->target);
     C3D_BindProgram(GlobalRender->shaderProgram);
 
@@ -171,27 +171,27 @@ void R3D_SceneBegin()
     C3D_CullFace(GPU_CULL_BACK_CCW);
 
     // Set uniforms
-    C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->uLoc_lightVec,     0.0f, 1.0f, 0.0f, 0.0f);
-    C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->uLoc_lightHalfVec, 0.0f, -1.0f, 0.0f, 0.0f);
-    C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->uLoc_lightClr,     1.0f, 1.0f,  1.0f, 1.0f);
+    C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_lightVec,     0.0f, 1.0f, 0.0f, 0.0f);
+    C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_lightHalfVec, 0.0f, -1.0f, 0.0f, 0.0f);
+    C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_lightClr,     1.0f, 1.0f,  1.0f, 1.0f);
 }
 
-void R3D_DrawOptimizedInstance(CompressedVertex* vbo, uint16_t* ibo, int count)
+void R3D_DrawCubicInstance(CubicInstance *instance)
 {
     C3D_Mtx viewModel, WVP;
-    Mtx_Multiply(&viewModel, &GlobalRender->cameraView, &GlobalRender->world);
-    Mtx_Multiply(&WVP, &GlobalRender->projection, &viewModel);
+    Mtx_Multiply(&viewModel, &GlobalRender->mtx_cameraView, &GlobalRender->mtx_world);
+    Mtx_Multiply(&WVP, &GlobalRender->mtx_projection, &viewModel);
 
     // Update uniforms 
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, GlobalRender->uLoc_projection, &WVP);
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, GlobalRender->uLoc_modelView, &GlobalRender->modelView);
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, GlobalRender->uLoc_material, &GlobalRender->material);
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_projection, &WVP);
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_modelView, &GlobalRender->mtx_modelView);
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_material, &GlobalRender->mtx_material);
 
     C3D_BufInfo *bufInfo = C3D_GetBufInfo();
     BufInfo_Init(bufInfo);
-    BufInfo_Add(bufInfo, vbo, sizeof(CompressedVertex), 3, 0x210);
+    BufInfo_Add(bufInfo, instance->vbo, sizeof(CompressedVertex), 3, 0x210);
 
-    C3D_DrawElements(GPU_TRIANGLES, count, C3D_UNSIGNED_SHORT, ibo);
+    C3D_DrawElements(GPU_TRIANGLES, instance->idx_count, C3D_UNSIGNED_SHORT, instance->ibo);
 }
 
 void R3D_Finish()
@@ -331,25 +331,25 @@ void R3D_CameraMoveUpDown(float value)
 
 void R3D_SetWorldViewMatrix(C3D_Mtx* worldMtx)
 {
-    Mtx_Copy(&GlobalRender->world, worldMtx);
+    Mtx_Copy(&GlobalRender->mtx_world, worldMtx);
 }
 
 void R3D_SetModelViewMatrx(C3D_Mtx* in)
 {
-    Mtx_Copy(&GlobalRender->modelView, in);
+    Mtx_Copy(&GlobalRender->mtx_modelView, in);
 }
 
 C3D_Mtx *R3D_GetWorldMatrx()
 {
-    return &GlobalRender->world;
+    return &GlobalRender->mtx_world;
 }
 
 void R3D_SetProjectionMatrix(C3D_Mtx* projMtx)
 {
-    Mtx_Copy(&GlobalRender->projection, projMtx);
+    Mtx_Copy(&GlobalRender->mtx_projection, projMtx);
 }
 
 void R3D_SetCameraViewMatrx(C3D_FVec position, C3D_FVec target, C3D_FVec up)
 {
-    Mtx_LookAt(&GlobalRender->cameraView, position, target, up, false);
+    Mtx_LookAt(&GlobalRender->mtx_cameraView, position, target, up, false);
 }

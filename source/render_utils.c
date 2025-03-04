@@ -37,7 +37,7 @@ uint8_t compressNormals(float x, float y, float z)
     return result;
 }
 
-void addCubeFaceToMesh(CompressedVertex *vbo, uint16_t *ibo, uint32_t vbo_idx, uint32_t ibo_idx, uint16_t face_idx, CubeFace face, int x, int y, int z)
+void addCubeFaceToCubicMesh(CubicInstance *instance, CubeFace face, int x, int y, int z)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -46,9 +46,13 @@ void addCubeFaceToMesh(CompressedVertex *vbo, uint16_t *ibo, uint32_t vbo_idx, u
             .texcoord = {face.vertex[i].texcoord[0], face.vertex[i].texcoord[1]},
             .normal = compressNormals(face.vertex[i].normal[0], face.vertex[i].normal[1], face.vertex[i].normal[2])
         };
-        vbo[vbo_idx + i] = local_vtx;
+        instance->vbo[instance->vtx_count + i] = local_vtx;
     }
 
     for (int i = 0; i < 6; i++)
-        ibo[ibo_idx + i] = vindexes[i] + face_idx * 4;
+        instance->ibo[instance->idx_count + i] = vindexes[i] + instance->faces_count * 4;
+    
+    instance->faces_count += 1;
+    instance->vtx_count += 4;
+    instance->idx_count += 6;
 }
