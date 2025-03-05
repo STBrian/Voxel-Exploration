@@ -21,6 +21,10 @@ void ChunkInit(Chunk* chunk_s, uint8_t size, uint16_t height) {
     chunk_s->layered_blocks_data = calloc(height, sizeof(uint8_t*));
     chunk_s->fragments = calloc(height / size, sizeof(CubicInstance));
     chunk_s->facesPerFragment = calloc(height / size, sizeof(uint16_t));
+    chunk_s->front_neighbor = NULL;
+    chunk_s->back_neighbor = NULL;
+    chunk_s->right_neighbor = NULL;
+    chunk_s->left_neighbor = NULL;
 }
 
 void ChunkInitDefault(Chunk* chunk_s) {
@@ -67,7 +71,37 @@ void ChunkSetBlock(Chunk* chunk_s, uint8_t x, uint8_t y, uint8_t z, uint8_t bloc
     }
 }
 
-uint8_t ChunkGetBlock(Chunk* chunk_s, uint8_t x, uint8_t y, uint8_t z) {
+uint8_t ChunkGetBlock(Chunk* chunk_s, int x, int y, int z) {
+    if ((x < 0 || x >= chunk_s->size) && (z < 0 || z >= chunk_s->size))
+        return 0;
+    if (x < 0)
+    {
+        if (chunk_s->left_neighbor != NULL)
+            return ChunkGetBlock(chunk_s->left_neighbor, chunk_s->size + x, y, z);
+        else
+            return 1;
+    }
+    else if (x >= chunk_s->size)
+    {
+        if (chunk_s->right_neighbor != NULL)
+            return ChunkGetBlock(chunk_s->right_neighbor, x - chunk_s->size, y, z);
+        else
+            return 1;
+    }
+    if (z < 0)
+    {
+        if (chunk_s->back_neighbor != NULL)
+            return ChunkGetBlock(chunk_s->back_neighbor, x, y, chunk_s->size + z);
+        else
+            return 1;
+    }
+    else if (z >= chunk_s->size)
+    {
+        if (chunk_s->front_neighbor != NULL)
+            return ChunkGetBlock(chunk_s->front_neighbor, x, y, z - chunk_s->size);
+        else
+            return 1;
+    }
     uint8_t* layer = chunk_s->layered_blocks_data[y];
     if (layer != NULL)
         return layer[x * chunk_s->size + z];
@@ -136,68 +170,117 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
             {
                 for (uint8_t x = 0; x < chunk_s->size; x++)
                 {
+                    uint16_t z_row = 0;
                     for (uint8_t z = 0; z < chunk_s->size; z++)
                     {
                         uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);
-                        uint8_t adyacent_block;
-
-                        if (blockID != 0)
-                        {
-                            if (z < chunk_s->size - 1)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z + 1);
-                                if (adyacent_block == 0)
-                                    n_faces++;
-                            }
-                            else
-                                n_faces++;
-
-                            if (z > 0)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z - 1);
-                                if (adyacent_block == 0)
-                                    n_faces++;
-                            }
-                            else
-                                n_faces++;
-
-                            if (x < chunk_s->size - 1)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x + 1, y + fragment * chunk_s->size, z);
-                                if (adyacent_block == 0)
-                                    n_faces++;
-                            }
-                            else
-                                n_faces++;
-                            
-                            if (x > 0)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x - 1, y + fragment * chunk_s->size, z);
-                                if (adyacent_block == 0)
-                                    n_faces++;
-                            }
-                            else
-                                n_faces++;
-
-                            if (y + fragment * chunk_s->size < chunk_s->height - 1)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size + 1, z);
-                                if (adyacent_block == 0)
-                                    n_faces++;
-                            }
-                            else
-                                n_faces++;
-
-                            if (y + fragment * chunk_s->size > 0)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size - 1, z);
-                                if (adyacent_block == 0)
-                                    n_faces++;
-                            }
-                            else
-                                n_faces++;
-                        }
+                        if (blockID)
+                            z_row |= (1 << z);
                     }
+                    uint16_t z_left, z_right;
+                    if (ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, -1))
+                        z_left = (z_row << 1) | 1;
+                    else
+                        z_left = z_row << 1;
+                    z_left = ~z_left;
+                    if (ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, chunk_s->size))
+                        z_right = (z_row >> 1) | (1 << 15);
+                    else
+                        z_right = z_row >> 1;
+                    z_right = ~z_right;
+
+                    z_left = z_row & z_left; // back
+                    z_right = z_row & z_right; // front
+
+                    for (uint8_t z = 0; z < chunk_s->size; z++)
+                    {
+                        if ((z_left >> z) & 0b1)
+                            n_faces++;
+                        if ((z_right >> z) & 0b1)
+                            n_faces++;
+                    }
+                }
+
+                for (uint8_t z = 0; z < chunk_s->size; z++)
+                {
+                    uint16_t x_row = 0;
+                    for (uint8_t x = 0; x < chunk_s->size; x++)
+                    {
+                        uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);
+                        if (blockID != 0)
+                            x_row |= (1 << x);
+                    }
+                    uint16_t x_left, x_right;
+                    if (ChunkGetBlock(chunk_s, -1, y + fragment * chunk_s->size, z))
+                        x_left = (x_row << 1) | 1;
+                    else
+                        x_left = x_row << 1;
+                    x_left = ~x_left;
+                    if (ChunkGetBlock(chunk_s, chunk_s->size, y + fragment * chunk_s->size, z))
+                        x_right = (x_row >> 1) | (1 << 15);
+                    else
+                        x_right = x_row >> 1;
+                    x_right = ~x_right;
+
+                    x_left = x_row & x_left; // left
+                    x_right = x_row & x_right; // right
+                    
+                    for (uint8_t x = 0; x < chunk_s->size; x++)
+                    {
+                        if ((x_left >> x) & 0b1)
+                            n_faces++;
+                        if ((x_right >> x) & 0b1)
+                            n_faces++;
+                    }
+                }
+            }
+        }
+
+        for (uint8_t x = 0; x < chunk_s->size; x++)
+        {
+            for (uint8_t z = 0; z < chunk_s->size; z++)
+            {
+                uint16_t y_row = 0;
+                for (uint8_t y = 0; y < chunk_s->size; y++)
+                {
+                    if (chunk_s->layered_blocks_data[y + fragment * chunk_s->size] != NULL)
+                    {
+                        uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);
+                        if (blockID)
+                            y_row |= (1 << y);
+                    }
+                }
+                uint16_t y_left, y_right;
+                if (fragment > 0)
+                {
+                    if (ChunkGetBlock(chunk_s, x, -1 + fragment * chunk_s->size, z))
+                        y_left = (y_row << 1) | 1;
+                    else
+                        y_left = y_row << 1;
+                }
+                else
+                    y_left = y_row << 1;
+                y_left = ~y_left;
+                if (fragment < fragment_n - 1)
+                {
+                    if (ChunkGetBlock(chunk_s, x, chunk_s->size + fragment * chunk_s->size, z))
+                        y_right = (y_row >> 1) | (1 << 15);
+                    else
+                        y_right = y_row >> 1;
+                }
+                else
+                    y_right = y_row >> 1;
+                y_right = ~y_right;
+
+                y_left = y_row & y_left; // bottom
+                y_right = y_row & y_right; // top
+
+                for (uint8_t y = 0; y < chunk_s->size; y++)
+                {
+                    if ((y_left >> y) & 0b1)
+                        n_faces++;
+                    if ((y_right >> y) & 0b1)
+                        n_faces++;
                 }
             }
         }
@@ -208,114 +291,123 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
             chunk_s->fragments[fragment].vbo = (CompressedVertex*)linearAlloc(sizeof(CompressedVertex) * n_faces * 4);
             chunk_s->fragments[fragment].ibo = (uint16_t*)linearAlloc(sizeof(vindexes) * n_faces);
 
-            int a_faces = 0;
             for (uint8_t y = 0; y < chunk_s->size; y++)
             {
-                for (uint8_t x = 0; x < chunk_s->size; x++)
+                if (chunk_s->layered_blocks_data[y + fragment * chunk_s->size] != NULL)
                 {
+                    for (uint8_t x = 0; x < chunk_s->size; x++)
+                    {
+                        uint16_t z_row = 0;
+                        for (uint8_t z = 0; z < chunk_s->size; z++)
+                        {
+                            uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);
+                            if (blockID)
+                                z_row |= (1 << z);
+                        }
+                        uint16_t z_left, z_right;
+                        if (ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, -1))
+                            z_left = (z_row << 1) | 1;
+                        else
+                            z_left = z_row << 1;
+                        z_left = ~z_left;
+                        if (ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, chunk_s->size))
+                            z_right = (z_row >> 1) | (1 << 15);
+                        else
+                            z_right = z_row >> 1;
+                        z_right = ~z_right;
+
+                        z_left = z_row & z_left; // back
+                        z_right = z_row & z_right; // front
+
+                        for (uint8_t z = 0; z < chunk_s->size; z++)
+                        {
+                            if ((z_left >> z) & 0b1)
+                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.back, x, y, z);
+                            if ((z_right >> z) & 0b1)
+                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.front, x, y, z);
+                        }
+                    }
+
                     for (uint8_t z = 0; z < chunk_s->size; z++)
                     {
-                        uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);
-                        uint8_t adyacent_block;
-
-                        if (blockID != 0)
+                        uint16_t x_row = 0;
+                        for (uint8_t x = 0; x < chunk_s->size; x++)
                         {
-                            // Front
-                            if (z < chunk_s->size - 1)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z + 1);
-                                if (adyacent_block == 0)
-                                {
-                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.front, x, y, z);
-                                    a_faces++;
-                                }
-                            }
-                            else
-                            {
-                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.front, x, y, z);
-                                a_faces++;
-                            }
-
-                            // Back
-                            if (z > 0)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z - 1);
-                                if (adyacent_block == 0)
-                                {
-                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.back, x, y, z);
-                                    a_faces++;
-                                }
-                            }
-                            else
-                            {
-                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.back, x, y, z);
-                                a_faces++;
-                            }
-
-                            // Right
-                            if (x < chunk_s->size - 1)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x + 1, y + fragment * chunk_s->size, z);
-                                if (adyacent_block == 0)
-                                {
-                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.right, x, y, z);
-                                    a_faces++;
-                                }
-                            }
-                            else
-                            {
-                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.right, x, y, z);
-                                a_faces++;
-                            }
-                            
-                            // Left
-                            if (x > 0)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x - 1, y + fragment * chunk_s->size, z);
-                                if (adyacent_block == 0)
-                                {
-                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.left, x, y, z);
-                                    a_faces++;
-                                }
-                            }
-                            else
-                            {
-                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.left, x, y, z);
-                                a_faces++;
-                            }
-
-                            // Top
-                            if (y + fragment * chunk_s->size < chunk_s->height - 1)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size + 1, z);
-                                if (adyacent_block == 0)
-                                {
-                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.top, x, y, z);
-                                    a_faces++;
-                                }
-                            }
-                            else
-                            {
-                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.top, x, y, z);
-                                a_faces++;
-                            }
-
-                            // Bottom
-                            if (y + fragment * chunk_s->size > 0)
-                            {
-                                adyacent_block = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size - 1, z);
-                                if (adyacent_block == 0)
-                                {
-                                    addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.bottom, x, y, z);
-                                    a_faces++;
-                                }
-                            }
-                            else
-                            {
-                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.bottom, x, y, z);
-                                a_faces++;
-                            }
+                            uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);
+                            if (blockID)
+                                x_row |= (1 << x);
                         }
+                        uint16_t x_left, x_right;
+                        if (ChunkGetBlock(chunk_s, -1, y + fragment * chunk_s->size, z))
+                            x_left = (x_row << 1) | 1;
+                        else
+                            x_left = x_row << 1;
+                        x_left = ~x_left;
+                        if (ChunkGetBlock(chunk_s, chunk_s->size, y + fragment * chunk_s->size, z))
+                            x_right = (x_row >> 1) | (1 << 15);
+                        else
+                            x_right = x_row >> 1;
+                        x_right = ~x_right;
+
+                        x_left = x_row & x_left; // left
+                        x_right = x_row & x_right; // right
+                        
+                        for (uint8_t x = 0; x < chunk_s->size; x++)
+                        {
+                            if ((x_left >> x) & 0b1)
+                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.left, x, y, z);
+                            if ((x_right >> x) & 0b1)
+                                addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.right, x, y, z);
+                        }
+                    }
+                }
+            }
+
+            for (uint8_t x = 0; x < chunk_s->size; x++)
+            {
+                for (uint8_t z = 0; z < chunk_s->size; z++)
+                {
+                    uint16_t y_row = 0;
+                    for (uint8_t y = 0; y < chunk_s->size; y++)
+                    {
+                        if (chunk_s->layered_blocks_data[y + fragment * chunk_s->size] != NULL)
+                        {
+                            uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);
+                            if (blockID)
+                                y_row |= (1 << y);
+                        }
+                    }
+                    uint16_t y_left, y_right;
+                    if (fragment > 0)
+                    {
+                        if (ChunkGetBlock(chunk_s, x, -1 + fragment * chunk_s->size, z))
+                            y_left = (y_row << 1) | 1;
+                        else
+                            y_left = y_row << 1;
+                    }
+                    else
+                        y_left = y_row << 1;
+                    y_left = ~y_left;
+                    if (fragment < fragment_n - 1)
+                    {
+                        if (ChunkGetBlock(chunk_s, x, chunk_s->size + fragment * chunk_s->size, z))
+                            y_right = (y_row >> 1) | (1 << 15);
+                        else
+                            y_right = y_row >> 1;
+                    }
+                    else
+                        y_right = y_row >> 1;
+                    y_right = ~y_right;
+
+                    y_left = y_row & y_left; // bottom
+                    y_right = y_row & y_right; // top
+
+                    for (uint8_t y = 0; y < chunk_s->size; y++)
+                    {
+                        if ((y_left >> y) & 0b1)
+                            addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.bottom, x, y, z);
+                        if ((y_right >> y) & 0b1)
+                            addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.top, x, y, z);
                     }
                 }
             }

@@ -72,7 +72,31 @@ int main()
     printf("Generating chunk data...\n");
     for (int i = 0; i < 16; i++)
     {
-        ChunkGenerateTerrain(DListGet(chunks, i), 2342);
+        Chunk* currentChunk = DListGet(chunks, i);
+        Chunk* neighbor;
+        int x = i / 4;
+        int z = i % 4;
+        if (x > 0)
+        {
+            neighbor = DListGet(chunks, (x - 1) * 4 + z);
+            currentChunk->left_neighbor = neighbor;
+        }
+        if (x < 3)
+        {
+            neighbor = DListGet(chunks, (x + 1) * 4 + z);
+            currentChunk->right_neighbor = neighbor;
+        }
+        if (z > 0)
+        {
+            neighbor = DListGet(chunks, x * 4 + z - 1);
+            currentChunk->back_neighbor = neighbor;
+        }
+        if (z < 3)
+        {
+            neighbor = DListGet(chunks, x * 4 + z + 1);
+            currentChunk->front_neighbor = neighbor;
+        }
+        ChunkGenerateTerrain(currentChunk, 2342);
         printf("Chunk %d terrain data generated\n", i+1);
     }
 
