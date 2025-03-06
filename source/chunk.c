@@ -163,6 +163,13 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
     uint8_t fragment_n = chunk_s->height / chunk_s->size;
     for (uint8_t fragment = 0; fragment < fragment_n; fragment++)
     {
+        uint16_t *z_left = (uint16_t*)malloc(sizeof(uint16_t) * 16 * 16);
+        uint16_t *z_right = (uint16_t*)malloc(sizeof(uint16_t) * 16 * 16);
+        uint16_t *x_left = (uint16_t*)malloc(sizeof(uint16_t) * 16 * 16);
+        uint16_t *x_right = (uint16_t*)malloc(sizeof(uint16_t) * 16 * 16);
+        uint16_t *y_left = (uint16_t*)malloc(sizeof(uint16_t) * 16 * 16);
+        uint16_t *y_right = (uint16_t*)malloc(sizeof(uint16_t) * 16 * 16);
+        // Calculate faces
         int n_faces = 0;
         for (uint8_t y = 0; y < chunk_s->size; y++)
         {
@@ -177,26 +184,25 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
                         if (blockID)
                             z_row |= (1 << z);
                     }
-                    uint16_t z_left, z_right;
                     if (ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, -1))
-                        z_left = (z_row << 1) | 1;
+                        z_left[y * 16 + x] = (z_row << 1) | 1;
                     else
-                        z_left = z_row << 1;
-                    z_left = ~z_left;
+                        z_left[y * 16 + x] = z_row << 1;
+                    z_left[y * 16 + x] = ~z_left[y * 16 + x];
                     if (ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, chunk_s->size))
-                        z_right = (z_row >> 1) | (1 << 15);
+                        z_right[y * 16 + x] = (z_row >> 1) | (1 << 15);
                     else
-                        z_right = z_row >> 1;
-                    z_right = ~z_right;
+                        z_right[y * 16 + x] = z_row >> 1;
+                    z_right[y * 16 + x] = ~z_right[y * 16 + x];
 
-                    z_left = z_row & z_left; // back
-                    z_right = z_row & z_right; // front
+                    z_left[y * 16 + x] = z_row & z_left[y * 16 + x]; // back
+                    z_right[y * 16 + x] = z_row & z_right[y * 16 + x]; // front
 
                     for (uint8_t z = 0; z < chunk_s->size; z++)
                     {
-                        if ((z_left >> z) & 0b1)
+                        if ((z_left[y * 16 + x] >> z) & 0b1)
                             n_faces++;
-                        if ((z_right >> z) & 0b1)
+                        if ((z_right[y * 16 + x] >> z) & 0b1)
                             n_faces++;
                     }
                 }
@@ -210,26 +216,25 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
                         if (blockID != 0)
                             x_row |= (1 << x);
                     }
-                    uint16_t x_left, x_right;
                     if (ChunkGetBlock(chunk_s, -1, y + fragment * chunk_s->size, z))
-                        x_left = (x_row << 1) | 1;
+                        x_left[y * 16 + z] = (x_row << 1) | 1;
                     else
-                        x_left = x_row << 1;
-                    x_left = ~x_left;
+                        x_left[y * 16 + z] = x_row << 1;
+                    x_left[y * 16 + z] = ~x_left[y * 16 + z];
                     if (ChunkGetBlock(chunk_s, chunk_s->size, y + fragment * chunk_s->size, z))
-                        x_right = (x_row >> 1) | (1 << 15);
+                        x_right[y * 16 + z] = (x_row >> 1) | (1 << 15);
                     else
-                        x_right = x_row >> 1;
-                    x_right = ~x_right;
+                        x_right[y * 16 + z] = x_row >> 1;
+                    x_right[y * 16 + z] = ~x_right[y * 16 + z];
 
-                    x_left = x_row & x_left; // left
-                    x_right = x_row & x_right; // right
+                    x_left[y * 16 + z] = x_row & x_left[y * 16 + z]; // left
+                    x_right[y * 16 + z] = x_row & x_right[y * 16 + z]; // right
                     
                     for (uint8_t x = 0; x < chunk_s->size; x++)
                     {
-                        if ((x_left >> x) & 0b1)
+                        if ((x_left[y * 16 + z] >> x) & 0b1)
                             n_faces++;
-                        if ((x_right >> x) & 0b1)
+                        if ((x_right[y * 16 + z] >> x) & 0b1)
                             n_faces++;
                     }
                 }
@@ -250,41 +255,41 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
                             y_row |= (1 << y);
                     }
                 }
-                uint16_t y_left, y_right;
                 if (fragment > 0)
                 {
                     if (ChunkGetBlock(chunk_s, x, -1 + fragment * chunk_s->size, z))
-                        y_left = (y_row << 1) | 1;
+                        y_left[x * 16 + z] = (y_row << 1) | 1;
                     else
-                        y_left = y_row << 1;
+                        y_left[x * 16 + z] = y_row << 1;
                 }
                 else
-                    y_left = y_row << 1;
-                y_left = ~y_left;
+                    y_left[x * 16 + z] = y_row << 1;
+                y_left[x * 16 + z] = ~y_left[x * 16 + z];
                 if (fragment < fragment_n - 1)
                 {
                     if (ChunkGetBlock(chunk_s, x, chunk_s->size + fragment * chunk_s->size, z))
-                        y_right = (y_row >> 1) | (1 << 15);
+                        y_right[x * 16 + z] = (y_row >> 1) | (1 << 15);
                     else
-                        y_right = y_row >> 1;
+                        y_right[x * 16 + z] = y_row >> 1;
                 }
                 else
-                    y_right = y_row >> 1;
-                y_right = ~y_right;
+                    y_right[x * 16 + z] = y_row >> 1;
+                y_right[x * 16 + z] = ~y_right[x * 16 + z];
 
-                y_left = y_row & y_left; // bottom
-                y_right = y_row & y_right; // top
+                y_left[x * 16 + z] = y_row & y_left[x * 16 + z]; // bottom
+                y_right[x * 16 + z] = y_row & y_right[x * 16 + z]; // top
 
                 for (uint8_t y = 0; y < chunk_s->size; y++)
                 {
-                    if ((y_left >> y) & 0b1)
+                    if ((y_left[x * 16 + z] >> y) & 0b1)
                         n_faces++;
-                    if ((y_right >> y) & 0b1)
+                    if ((y_right[x * 16 + z] >> y) & 0b1)
                         n_faces++;
                 }
             }
         }
 
+        // Adds the calculated faces to vbo and ibo
         chunk_s->facesPerFragment[fragment] = n_faces;
         if (n_faces > 0)
         {
@@ -297,66 +302,22 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
                 {
                     for (uint8_t x = 0; x < chunk_s->size; x++)
                     {
-                        uint16_t z_row = 0;
                         for (uint8_t z = 0; z < chunk_s->size; z++)
                         {
-                            uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);
-                            if (blockID)
-                                z_row |= (1 << z);
-                        }
-                        uint16_t z_left, z_right;
-                        if (ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, -1))
-                            z_left = (z_row << 1) | 1;
-                        else
-                            z_left = z_row << 1;
-                        z_left = ~z_left;
-                        if (ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, chunk_s->size))
-                            z_right = (z_row >> 1) | (1 << 15);
-                        else
-                            z_right = z_row >> 1;
-                        z_right = ~z_right;
-
-                        z_left = z_row & z_left; // back
-                        z_right = z_row & z_right; // front
-
-                        for (uint8_t z = 0; z < chunk_s->size; z++)
-                        {
-                            if ((z_left >> z) & 0b1)
+                            if ((z_left[y * 16 + x] >> z) & 0b1) // back
                                 addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.back, x, y, z);
-                            if ((z_right >> z) & 0b1)
+                            if ((z_right[y * 16 + x] >> z) & 0b1) // front
                                 addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.front, x, y, z);
                         }
                     }
 
                     for (uint8_t z = 0; z < chunk_s->size; z++)
                     {
-                        uint16_t x_row = 0;
                         for (uint8_t x = 0; x < chunk_s->size; x++)
                         {
-                            uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);
-                            if (blockID)
-                                x_row |= (1 << x);
-                        }
-                        uint16_t x_left, x_right;
-                        if (ChunkGetBlock(chunk_s, -1, y + fragment * chunk_s->size, z))
-                            x_left = (x_row << 1) | 1;
-                        else
-                            x_left = x_row << 1;
-                        x_left = ~x_left;
-                        if (ChunkGetBlock(chunk_s, chunk_s->size, y + fragment * chunk_s->size, z))
-                            x_right = (x_row >> 1) | (1 << 15);
-                        else
-                            x_right = x_row >> 1;
-                        x_right = ~x_right;
-
-                        x_left = x_row & x_left; // left
-                        x_right = x_row & x_right; // right
-                        
-                        for (uint8_t x = 0; x < chunk_s->size; x++)
-                        {
-                            if ((x_left >> x) & 0b1)
+                            if ((x_left[y * 16 + z] >> x) & 0b1) // left
                                 addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.left, x, y, z);
-                            if ((x_right >> x) & 0b1)
+                            if ((x_right[y * 16 + z] >> x) & 0b1) // right
                                 addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.right, x, y, z);
                         }
                     }
@@ -367,54 +328,24 @@ void ChunkGenerateRenderObject(Chunk* chunk_s) {
             {
                 for (uint8_t z = 0; z < chunk_s->size; z++)
                 {
-                    uint16_t y_row = 0;
                     for (uint8_t y = 0; y < chunk_s->size; y++)
                     {
-                        if (chunk_s->layered_blocks_data[y + fragment * chunk_s->size] != NULL)
-                        {
-                            uint8_t blockID = ChunkGetBlock(chunk_s, x, y + fragment * chunk_s->size, z);
-                            if (blockID)
-                                y_row |= (1 << y);
-                        }
-                    }
-                    uint16_t y_left, y_right;
-                    if (fragment > 0)
-                    {
-                        if (ChunkGetBlock(chunk_s, x, -1 + fragment * chunk_s->size, z))
-                            y_left = (y_row << 1) | 1;
-                        else
-                            y_left = y_row << 1;
-                    }
-                    else
-                        y_left = y_row << 1;
-                    y_left = ~y_left;
-                    if (fragment < fragment_n - 1)
-                    {
-                        if (ChunkGetBlock(chunk_s, x, chunk_s->size + fragment * chunk_s->size, z))
-                            y_right = (y_row >> 1) | (1 << 15);
-                        else
-                            y_right = y_row >> 1;
-                    }
-                    else
-                        y_right = y_row >> 1;
-                    y_right = ~y_right;
-
-                    y_left = y_row & y_left; // bottom
-                    y_right = y_row & y_right; // top
-
-                    for (uint8_t y = 0; y < chunk_s->size; y++)
-                    {
-                        if ((y_left >> y) & 0b1)
+                        if ((y_left[x * 16 + z] >> y) & 0b1) // bottom
                             addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.bottom, x, y, z);
-                        if ((y_right >> y) & 0b1)
+                        if ((y_right[x * 16 + z] >> y) & 0b1) // top
                             addCubeFaceToCubicMesh(&chunk_s->fragments[fragment], cube.top, x, y, z);
                     }
                 }
             }
-
-            chunk_s->render_ready = true;
         }
+        free(z_left);
+        free(z_right);
+        free(x_left);
+        free(x_right);
+        free(y_left);
+        free(y_right);
     }
+    chunk_s->render_ready = true;
 }
 
 void ChunkRender(Chunk* chunk_s, RCamera* actorCamera)
