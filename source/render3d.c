@@ -2,6 +2,10 @@
 
 #include <stdio.h>
 
+#define DISPLAY_TRANSFER_FLAGS \
+	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
+	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
+	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
 #define M_PI_2 1.57079632679489661923
 
 RRender3D* GlobalRender = NULL;
@@ -14,6 +18,11 @@ RRender3D* GlobalRender = NULL;
 
 void R3D_Init()
 {
+    // Initialize graphics
+	gfxInitDefault();
+	C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
+    C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
+
     GlobalRender = (RRender3D*)malloc(sizeof(RRender3D));
     C3D_Mtx material = {
         {
@@ -39,9 +48,18 @@ void R3D_Init()
     GlobalRender->printDebug = true;
 }
 
-void R3D_SceneInit(RScene *scene, C3D_RenderTarget *target)
+void R3D_Fini()
 {
-    scene->target = target;
+    C2D_Fini();
+    C3D_Fini();
+}
+
+void R3D_SceneInit(RScene *scene)
+{
+    // Initialize the render target
+	C3D_RenderTarget* target3D = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
+	C3D_RenderTargetSetOutput(target3D, GFX_TOP, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
+    scene->target = target3D;
     scene->camera.position = FVec3_New(0.0f, 70.0f, 0.0f);
     scene->camera.pitch = 0.0f;
     scene->camera.yaw = 180.0f;
@@ -49,7 +67,10 @@ void R3D_SceneInit(RScene *scene, C3D_RenderTarget *target)
     scene->camera.pitchMax = 89.0f;
 }
 
-
+void R3D_SceneDelete(RScene *scene)
+{
+    C3D_RenderTargetDelete(scene->target);
+}
 
 
 bool R3D_LoadShader(const char* shaderFp)
@@ -150,7 +171,7 @@ void R3D_SceneSet(RScene *scene)
     GlobalRender->scene = scene;
 }
 
-void R3D_SceneBegin()
+void R3D_3DSceneBegin()
 {
     C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
     C3D_RenderTargetClear(GlobalRender->scene->target, C3D_CLEAR_ALL, GlobalRender->clearColor, 0);
@@ -174,6 +195,17 @@ void R3D_SceneBegin()
     C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_lightVec,     0.0f, 1.0f, 0.0f, 0.0f);
     C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_lightHalfVec, 0.0f, -1.0f, 0.0f, 0.0f);
     C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_lightClr,     1.0f, 1.0f,  1.0f, 1.0f);
+}
+
+void R3D_2DSceneBegin()
+{
+    C2D_Prepare();
+    C2D_SceneBegin(GlobalRender->scene->target);
+}
+
+void R3D_FrameEnd()
+{
+    C3D_FrameEnd(0);
 }
 
 void R3D_DrawCubicInstance(CubicInstance *instance)

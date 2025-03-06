@@ -12,11 +12,6 @@
 #include "string_utils.h"
 #include "dynalist.h"
 
-#define DISPLAY_TRANSFER_FLAGS \
-	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
-	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
-	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
-
 static C2D_TextBuf g_textBuffer;
 static C2D_Text g_fpsText[3];
 
@@ -27,28 +22,20 @@ int main()
     cfguInit(); // Allows system functions to work
     romfsInit();
 
-    // Initialize graphics
-	gfxInitDefault();
-	C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
-    C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
-
-    // Initialize the render target
-	C3D_RenderTarget* target3D = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
-	C3D_RenderTargetSetOutput(target3D, GFX_TOP, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
+    R3D_Init();
     consoleInit(GFX_BOTTOM, NULL);
 
-    g_textBuffer = C2D_TextBufNew(4096);
+    RScene mainScene;
+    R3D_SceneInit(&mainScene);
+    R3D_SceneSet(&mainScene);
+    RCamera *actorCamera = R3D_GetCurrentCamera();
 
-    R3D_Init();
     if (!R3D_LoadShader("romfs:/shaders/chunk.shbin"))
     {
         printf("Failed to load shader\n");
         goto ERROR;
     }
-    RScene mainScene;
-    R3D_SceneInit(&mainScene, target3D);
-    R3D_SceneSet(&mainScene);
-    RCamera *actorCamera = R3D_GetCurrentCamera();
+
     C3D_Tex stoneTex;
     if (!loadTexture(&stoneTex, "romfs:/assets/debug/stone.t3x"))
     {
@@ -108,6 +95,8 @@ int main()
     }
     printf("All done!\n");
 
+    g_textBuffer = C2D_TextBufNew(4096);
+
     struct timespec lastTime, endTime;
     double elapsed;
     float fps = 0.0f;
@@ -149,15 +138,14 @@ int main()
             R3D_CameraMoveUpDown(-speed);
 
         // Render the 3D scene
-        R3D_SceneBegin();
+        R3D_3DSceneBegin();
         C3D_TexBind(0, &stoneTex);
 
         for (int i = 0; i < 16; i++)
             ChunkRender(DListGet(chunks, i), actorCamera);
 
         // Render the 2D scene
-        C2D_Prepare();
-        C2D_SceneBegin(target3D);
+        R3D_2DSceneBegin();
 
         C2D_TextBufClear(g_textBuffer);
 
@@ -169,7 +157,8 @@ int main()
         C2D_TextOptimize(&g_fpsText[1]);
         C2D_DrawText(&g_fpsText[1], C2D_WithColor, 10.0f, 220.0f, 0.5f, 0.5f, 0.5f, C2D_Color32f(1.0, 1.0, 1.0, 1.0));
         
-		C3D_FrameEnd(0);
+        // End drawing
+		R3D_FrameEnd();
 
         // Calculate frame time
         clock_gettime(CLOCK_MONOTONIC, &endTime);
@@ -216,8 +205,8 @@ int main()
 
     END:
 	// Deinitialize graphics
-	C3D_Fini();
-    C2D_Fini();
+    R3D_SceneDelete(&mainScene);
+    R3D_Fini();
 	gfxExit();
     romfsExit();
 

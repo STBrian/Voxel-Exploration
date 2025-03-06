@@ -63,15 +63,26 @@ typedef struct g_cubic_instance {
 
 void R3D_Init();
 
+void R3D_Fini();
+
 bool R3D_LoadShader(const char *shaderFp);
 
 void R3D_FreeShaderProgram();
 
-void R3D_SceneInit(RScene *scene, C3D_RenderTarget *target);
+void R3D_SceneInit(RScene *scene);
+
+void R3D_SceneDelete(RScene *scene);
+
+
+
 
 void R3D_SceneSet(RScene *scene);
 
-void R3D_SceneBegin();
+void R3D_3DSceneBegin();
+
+void R3D_2DSceneBegin();
+
+void R3D_FrameEnd();
 
 void R3D_DrawCubicInstance(CubicInstance *instance);
 
