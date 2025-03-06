@@ -78,6 +78,8 @@ void R3D_SceneDelete(RScene *scene);
 
 void R3D_SceneSet(RScene *scene);
 
+void R3D_FrameBegin();
+
 void R3D_Scene3DBegin();
 
 void R3D_Scene2DBegin();

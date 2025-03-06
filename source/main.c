@@ -137,6 +137,7 @@ int main()
         if (kHeld & KEY_B)
             R3D_CameraMoveUpDown(-speed);
 
+        R3D_FrameBegin(); // Start frame
         // Render the 3D scene
         R3D_Scene3DBegin();
         C3D_TexBind(0, &stoneTex);
@@ -157,8 +158,7 @@ int main()
         C2D_TextOptimize(&g_fpsText[1]);
         C2D_DrawText(&g_fpsText[1], C2D_WithColor, 10.0f, 220.0f, 0.5f, 0.5f, 0.5f, C2D_Color32f(1.0, 1.0, 1.0, 1.0));
         
-        // End drawing
-		R3D_FrameEnd();
+		R3D_FrameEnd(); // End frame
 
         // Calculate frame time
         clock_gettime(CLOCK_MONOTONIC, &endTime);

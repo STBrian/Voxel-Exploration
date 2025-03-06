@@ -171,9 +171,13 @@ void R3D_SceneSet(RScene *scene)
     GlobalRender->scene = scene;
 }
 
-void R3D_Scene3DBegin()
+void R3D_FrameBegin()
 {
     C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+}
+
+void R3D_Scene3DBegin()
+{
     C3D_RenderTargetClear(GlobalRender->scene->target, C3D_CLEAR_ALL, GlobalRender->clearColor, 0);
     C3D_FrameDrawOn(GlobalRender->scene->target);
     C3D_BindProgram(GlobalRender->shaderProgram);
