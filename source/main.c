@@ -138,14 +138,14 @@ int main()
             R3D_CameraMoveUpDown(-speed);
 
         // Render the 3D scene
-        R3D_3DSceneBegin();
+        R3D_Scene3DBegin();
         C3D_TexBind(0, &stoneTex);
 
         for (int i = 0; i < 16; i++)
             ChunkRender(DListGet(chunks, i), actorCamera);
 
         // Render the 2D scene
-        R3D_2DSceneBegin();
+        R3D_Scene2DBegin();
 
         C2D_TextBufClear(g_textBuffer);
 

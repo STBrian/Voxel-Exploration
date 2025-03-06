@@ -78,9 +78,9 @@ void R3D_SceneDelete(RScene *scene);
 
 void R3D_SceneSet(RScene *scene);
 
-void R3D_3DSceneBegin();
+void R3D_Scene3DBegin();
 
-void R3D_2DSceneBegin();
+void R3D_Scene2DBegin();
 
 void R3D_FrameEnd();
 

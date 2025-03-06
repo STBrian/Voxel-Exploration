@@ -171,7 +171,7 @@ void R3D_SceneSet(RScene *scene)
     GlobalRender->scene = scene;
 }
 
-void R3D_3DSceneBegin()
+void R3D_Scene3DBegin()
 {
     C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
     C3D_RenderTargetClear(GlobalRender->scene->target, C3D_CLEAR_ALL, GlobalRender->clearColor, 0);
@@ -197,7 +197,7 @@ void R3D_3DSceneBegin()
     C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_lightClr,     1.0f, 1.0f,  1.0f, 1.0f);
 }
 
-void R3D_2DSceneBegin()
+void R3D_Scene2DBegin()
 {
     C2D_Prepare();
     C2D_SceneBegin(GlobalRender->scene->target);
