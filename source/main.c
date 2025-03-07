@@ -12,7 +12,7 @@
 #include "string_utils.h"
 #include "dynalist.h"
 
-#define TERRAIN_SIZE 6
+#define TERRAIN_SIZE 8
 
 static C2D_TextBuf g_textBuffer;
 static C2D_Text g_fpsText[3];
@@ -46,9 +46,9 @@ int main()
     }
 
     DListInit(&chunks, sizeof(Chunk));
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < TERRAIN_SIZE; i++)
     {
-        for (int j = 0; j < 5; j++)
+        for (int j = 0; j < TERRAIN_SIZE; j++)
         {
             Chunk* currentChunk = DListAppendNew(chunks);
             ChunkInitDefault(currentChunk);
