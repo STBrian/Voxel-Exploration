@@ -32,7 +32,7 @@ int main()
     R3D_SceneSet(&mainScene);
     RCamera *actorCamera = R3D_GetCurrentCamera();
 
-    if (!R3D_LoadShader("romfs:/shaders/chunk.shbin"))
+    if (!R3D_LoadShader("romfs:/shaders/chunk_optimized.shbin"))
     {
         printf("Failed to load shader\n");
         goto ERROR;

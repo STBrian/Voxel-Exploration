@@ -14,6 +14,7 @@
 .constf basecolor(1.0, 1.0, 1.0, 1.0)
 .constf myconst(0.0, 1.0, -1.0, -0.5)
 .constf twopow(2.0, 4.0, 8.0, 16.0)
+.constf posdec(5.0, 10.0, 0.0, 0.0)
 
 .alias  zeros myconst.xxxx ; Vector full of zeros
 .alias  ones  myconst.yyyy ; Vector full of ones
@@ -59,9 +60,43 @@
 .end
 
 .proc main
+	; ------ Decode position ------
+		; r0 = decodedPosition
+		; r1 = Component multiplied
+		; r2 = Substracted component position value
+		; r3 = exponent
+	; Decode z
+	mov param1, inpos.x 					; param1 = inpos
+	mov param2, posdec.y 					; param2 = 10
+	call rshift 							; return = inpos >> 10
+	mov r0.z, return 						; decodedPosition.z = return
+
+	; Substract z << 10 from inpos
+	ex2 r3, posdec.y						; exponent = 2 ^ 10
+	mul r1, r0.z, r3	 					; zmul = z * exponent
+
+	mov param1, inpos.x 					; param1 = inpos
+	mov param2, r1 							; param2 = zmul
+	call subs 								; return = inpos - zmul
+	mov r2, return 							; inposxy = inpos - zmul
+
+	; Decode y
+	mov param1, r2 							; param1 = inposxy
+	mov param2, posdec.x 					; param2 = 5
+	call rshift 							; return = inposxy >> 5
+	mov r0.y, return 						; decodedPosition.y = return
+
+	; Substract y << 5 from inposxy -> x
+	ex2 r3, posdec.x						; exponent = 2 ^ 5
+	mul r1, r0.y, r3 						; ymul = decodedPosition.y * exponent
+
+	mov param1, r2 							; param1 = inposxy
+	mov param2, r1 							; param2 = ymul
+	call subs 								; return = inposxy - ymul
+	mov r0.x, return 						; decodedPosition.x = return
+
 	; Force the w component of inpos to be 1.0
-	mov r0.xyz, inpos
-	mov r0.w,   ones
+	mov r0.w, ones
 
 	; r1 = modelView * inpos
 	dp4 r1.x, modelView[0], r0

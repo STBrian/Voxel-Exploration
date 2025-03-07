@@ -42,12 +42,18 @@ uint8_t convertUVtoUint8(float value, uint8_t total)
     return (uint8_t)(total * value);
 }
 
+int16_t compressPosition(uint8_t x, uint8_t y, uint8_t z)
+{
+    int16_t result = ((z & 0b11111) << 10) | ((y & 0b11111) << 5) | (x & 0b11111);
+    return result;
+}
+
 void addCubeFaceToCubicMesh(CubicInstance *instance, CubeFace face, int x, int y, int z)
 {
     for (int i = 0; i < 4; i++)
     {
         CompressedVertex local_vtx = {
-            .position = {(uint8_t)(face.vertex[i].position[0] + x + 0.5), (uint8_t)(face.vertex[i].position[1] + y + 0.5), (uint8_t)(face.vertex[i].position[2] + z + 0.5)},
+            .position = compressPosition((uint8_t)(face.vertex[i].position[0] + x + 0.5), (uint8_t)(face.vertex[i].position[1] + y + 0.5), (uint8_t)(face.vertex[i].position[2] + z + 0.5)),
             .texcoord = {convertUVtoUint8(face.vertex[i].texcoord[0], 16), convertUVtoUint8(face.vertex[i].texcoord[1], 16)}, // tmp
             .normal = compressNormals(face.vertex[i].normal[0], face.vertex[i].normal[1], face.vertex[i].normal[2])
         };

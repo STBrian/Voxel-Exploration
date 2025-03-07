@@ -2,18 +2,18 @@
 
 #include <stdint.h>
 
-typedef struct
+typedef struct vertex_s
 {
     float position[3];
     float texcoord[2];
     float normal[3];
 } Vertex;
 
-typedef struct
+typedef struct compressed_vertex_s
 {
-    uint8_t position[3]; // Used -> 000|00000| 000|00000|
+    int16_t position; // Used -> 0|00000,00000,00000| -> |z,y,x|
     uint8_t texcoord[2]; // Used -> all
-    uint8_t normal; // Used -> 00|000000|
+    uint8_t normal; // Used -> 00|00,00,00| -> |z,y,x|
 } CompressedVertex;
 
 typedef struct 
