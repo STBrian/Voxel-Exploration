@@ -1,0 +1,156 @@
+; The shader for full one textured block
+
+; Uniforms
+.fvec projection[4], modelView[4]
+.fvec lightVec, lightHalfVec, lightClr, material[4]
+.fvec textureProp
+.alias mat_amb material[0]
+.alias mat_dif material[1]
+.alias mat_spe material[2]
+.alias mat_emi material[3]
+
+; Constants
+; constf basecolor(0.99, 0.6, 0.0, 1.0)
+.constf basecolor(1.0, 1.0, 1.0, 1.0)
+.constf myconst(0.0, 1.0, -1.0, -0.5)
+.constf normdec(4.0, 16.0, 0.25, 0.0625)
+.constf posdec(32.0, 1024.0, 0.03125, 0.0009765625)
+
+.alias  zeros myconst.xxxx ; Vector full of zeros
+.alias  ones  myconst.yyyy ; Vector full of ones
+.alias	minusone myconst.zzzz ; Vector full of minus ones
+
+; Functions registers
+.alias param1 r10
+.alias param2 r11
+.alias param3 r12
+.alias var1 r13
+.alias var2 r14
+.alias return r15
+
+; Outputs
+.out outpos position
+.out outtc0 texcoord0
+.out outclr color
+
+; Inputs (defined as aliases for convenience)
+.alias inpos v0
+.alias intex v1
+.alias innrm v2
+
+; SUBSTRACT = param1 -> a , param2 -> b , return -> yes
+.proc subs
+	mov var1, minusone 			; var1 = -1
+	mul var1, param2, var1 		; var1 = b * var1
+	add return, param1, var1 	; return = a - var1
+.end
+
+.proc main
+	; ------ Decode position ------
+	mov r5.x, inpos.x
+	
+	; Decode z
+	mul r0.z, posdec.w, r5.x
+	flr r0.z, r0.z
+
+	mul r1.z, posdec.y, r0.z
+	mul r1.z, minusone, r1.z
+	add r2.y, r5.x, r1.z
+
+	; Decode y
+	mul r0.y, posdec.z, r2.y
+	flr r0.y, r0.y
+
+	mul r1.y, posdec.x, r0.y
+	mul r1.y, minusone, r1.y
+	add r0.x, r2.y, r1.y
+	; ------       End       ------
+	
+	; Force the w component of inpos to be 1.0
+	mov r0.w, ones
+
+	; r1 = modelView * inpos
+	dp4 r1.x, modelView[0], r0
+	dp4 r1.y, modelView[1], r0
+	dp4 r1.z, modelView[2], r0
+	dp4 r1.w, modelView[3], r0
+
+	; outpos = projection * r1
+	dp4 outpos.x, projection[0], r1
+	dp4 outpos.y, projection[1], r1
+	dp4 outpos.z, projection[2], r1
+	dp4 outpos.w, projection[3], r1
+
+    ; outtex = intex
+	mov r0, intex
+	mov r1, ones
+	mul r1.x, textureProp.x, r0.x
+	mul r1.y, textureProp.y, r0.y
+	mov outtc0, r1
+
+	; ------ Decode normal ------
+	mov r5.x, innrm.x
+	
+	; Decode z
+	mul r0.z, normdec.w, r5.x
+	flr r0.z, r0.z
+
+	mul r1.z, normdec.y, r0.z
+	mul r1.z, minusone, r1.z
+	add r2.y, r5.x, r1.z
+
+	; Decode y
+	mul r0.y, normdec.z, r2.y
+	flr r0.y, r0.y
+
+	mul r1.y, normdec.x, r0.y
+	mul r1.y, minusone, r1.y
+	add r0.x, r2.y, r1.y
+
+	; decodedNormals -= 1
+	add r0, minusone, r0
+	; ------       End       ------
+
+	; Transform the normal vector with the modelView matrix
+	; r1 = normalize(modelView * innrm)
+	mov r0.w,   zeros
+	dp4 r1.x,   modelView[0], r0
+	dp4 r1.y,   modelView[1], r0
+	dp4 r1.z,   modelView[2], r0
+	mov r1.w,   zeros
+	dp3 r2,     r1, r1 ; r2 = x^2+y^2+z^2 for each component
+	rsq r2,     r2     ; r2 = 1/sqrt(r2)  ''
+	mul r1,     r2, r1 ; r1 = r1*r2
+
+	; Calculate the diffuse level (r0.x) and the shininess level (r0.y)
+	; r0.x = max(0, -(lightVec * r1))
+	; r0.y = max(0, (-lightHalfVec[i]) * r1) ^ 2
+	dp3 r0.x, lightVec,      r1
+	add r0.x, zeros,         -r0
+	dp3 r0.y, -lightHalfVec, r1
+	max r0,   zeros,         r0
+	mul r0.y, r0,            r0
+
+	; Accumulate the vertex color in r1, initializing it to the emission color
+	mov r1, mat_emi
+
+	; r1 += specularColor * lightClr * shininessLevel
+	mul r2, lightClr, r0.yyyy
+	mad r1, r2, mat_spe, r1
+
+	; r1 += diffuseColor * lightClr * diffuseLevel
+	mul r2, lightClr, r0.xxxx
+	mad r1, r2, mat_dif, r1
+
+	; r1 += ambientColor * lightClr
+	mov r2, lightClr
+	mad r1, r2, mat_amb, r1
+
+	; outclr = clamp r1 to [0,1]
+	mov r3, basecolor
+	mul r1, r1, r3
+	min outclr, ones, r1
+
+	; We're finished
+	end
+.end
