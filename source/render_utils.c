@@ -37,13 +37,18 @@ uint8_t compressNormals(float x, float y, float z)
     return result;
 }
 
+uint8_t convertUVtoUint8(float value, uint8_t total)
+{
+    return (uint8_t)(total * value);
+}
+
 void addCubeFaceToCubicMesh(CubicInstance *instance, CubeFace face, int x, int y, int z)
 {
     for (int i = 0; i < 4; i++)
     {
         CompressedVertex local_vtx = {
             .position = {(uint8_t)(face.vertex[i].position[0] + x + 0.5), (uint8_t)(face.vertex[i].position[1] + y + 0.5), (uint8_t)(face.vertex[i].position[2] + z + 0.5)},
-            .texcoord = {face.vertex[i].texcoord[0], face.vertex[i].texcoord[1]},
+            .texcoord = {convertUVtoUint8(face.vertex[i].texcoord[0], 16), convertUVtoUint8(face.vertex[i].texcoord[1], 16)}, // tmp
             .normal = compressNormals(face.vertex[i].normal[0], face.vertex[i].normal[1], face.vertex[i].normal[2])
         };
         instance->vbo[instance->vtx_count + i] = local_vtx;

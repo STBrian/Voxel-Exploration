@@ -142,6 +142,7 @@ bool R3D_LoadShader(const char* shaderFp)
                             GlobalRender->shader_uniforms.uLoc_lightHalfVec = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "lightHalfVec");
                             GlobalRender->shader_uniforms.uLoc_lightClr     = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "lightClr");
                             GlobalRender->shader_uniforms.uLoc_material     = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "material");
+                            GlobalRender->shader_uniforms.uLoc_textureProp  = shaderInstanceGetUniformLocation(GlobalRender->shaderProgram->vertexShader, "textureProp");
 
                             result = true;
                         }
@@ -157,10 +158,15 @@ bool R3D_LoadShader(const char* shaderFp)
 
 void R3D_FreeShaderProgram()
 {
-    shaderProgramFree(GlobalRender->shaderProgram);
-    free(GlobalRender->shaderProgram);
-    DVLB_Free(GlobalRender->vshaderDvlb);
-    free(GlobalRender->shaderData);
+    if (GlobalRender->shaderProgram != NULL)
+    {
+        shaderProgramFree(GlobalRender->shaderProgram);
+        free(GlobalRender->shaderProgram);
+    }
+    if (GlobalRender->vshaderDvlb != NULL)
+        DVLB_Free(GlobalRender->vshaderDvlb);
+    if (GlobalRender->shaderData != NULL)
+        free(GlobalRender->shaderData);
     GlobalRender->shaderProgram = NULL;
     GlobalRender->vshaderDvlb = NULL;
     GlobalRender->shaderData = NULL;
@@ -185,7 +191,7 @@ void R3D_Scene3DBegin()
     C3D_AttrInfo* attrInfo = C3D_GetAttrInfo();
     AttrInfo_Init(attrInfo);
     AttrInfo_AddLoader(attrInfo, 0, GPU_UNSIGNED_BYTE, 3); // v0=position
-    AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2); // v1=texcoord
+    AttrInfo_AddLoader(attrInfo, 1, GPU_UNSIGNED_BYTE, 2); // v1=texcoord
     AttrInfo_AddLoader(attrInfo, 2, GPU_UNSIGNED_BYTE, 1); // v2=normal
 
     C3D_TexEnv* env = C3D_GetTexEnv(0);
@@ -222,6 +228,7 @@ void R3D_DrawCubicInstance(CubicInstance *instance)
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_projection, &WVP);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_modelView, &GlobalRender->mtx_modelView);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_material, &GlobalRender->mtx_material);
+    C3D_FVUnifSet(GPU_VERTEX_SHADER, GlobalRender->shader_uniforms.uLoc_textureProp, 1.0f / 16.0f, 1.0f / 16.0f,  1.0f, 1.0f);
 
     C3D_BufInfo *bufInfo = C3D_GetBufInfo();
     BufInfo_Init(bufInfo);
@@ -230,7 +237,7 @@ void R3D_DrawCubicInstance(CubicInstance *instance)
     C3D_DrawElements(GPU_TRIANGLES, instance->idx_count, C3D_UNSIGNED_SHORT, instance->ibo);
 }
 
-void R3D_Finish()
+void R3D_Release()
 {
     if (GlobalRender != NULL)
     {

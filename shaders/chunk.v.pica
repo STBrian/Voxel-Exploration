@@ -3,6 +3,7 @@
 ; Uniforms
 .fvec projection[4], modelView[4]
 .fvec lightVec, lightHalfVec, lightClr, material[4]
+.fvec textureProp
 .alias mat_amb material[0]
 .alias mat_dif material[1]
 .alias mat_spe material[2]
@@ -12,10 +13,19 @@
 ; constf basecolor(0.99, 0.6, 0.0, 1.0)
 .constf basecolor(1.0, 1.0, 1.0, 1.0)
 .constf myconst(0.0, 1.0, -1.0, -0.5)
-.constf decnorms(16.0, 4.0, 0.0625, 0.25)
+.constf twopow(2.0, 4.0, 8.0, 16.0)
+
 .alias  zeros myconst.xxxx ; Vector full of zeros
 .alias  ones  myconst.yyyy ; Vector full of ones
-.alias minusone myconst.zzzz ; Vector full of minus ones
+.alias	minusone myconst.zzzz ; Vector full of minus ones
+
+; Functions registers
+.alias param1 r10
+.alias param2 r11
+.alias param3 r12
+.alias var1 r13
+.alias var2 r14
+.alias return r15
 
 ; Outputs
 .out outpos position
@@ -26,6 +36,27 @@
 .alias inpos v0
 .alias intex v1
 .alias innrm v2
+
+; RSHIFT = param1 -> value , param2 -> n_bits , return -> yes
+.proc rshift
+	ex2 var1, param2 			; var1 = 2 ^ n_bits
+	rcp var1, var1 				; var1 = 1 / var1
+	mul return, param1, var1 	; return = value / var1
+	flr return, return 			; return = floor(return)
+.end
+
+; LSHIFT = param1 -> value , param2 -> n_bits , return -> yes
+.proc lshift
+	ex2 var1, param2 			; var1 = 2 ^ n_bits
+	mul return, param1, var1 	; return = value * var1
+.end
+
+; SUBSTRACT = param1 -> a , param2 -> b , return -> yes
+.proc subs
+	mov var1, minusone 			; var1 = -1
+	mul var1, param2, var1 		; var1 = b * var1
+	add return, param1, var1 	; return = a - var1
+.end
 
 .proc main
 	; Force the w component of inpos to be 1.0
@@ -45,38 +76,52 @@
 	dp4 outpos.w, projection[3], r1
 
     ; outtex = intex
-	mov outtc0, intex
+	mov r0, intex
+	mov r1, ones
+	mul r1.x, textureProp.x, r0.x
+	mul r1.y, textureProp.y, r0.y
+	mov outtc0, r1
 
-	; Decode normal
-	mov r0, decnorms
-	mov r4, minusone
-	mov r1.x, innrm.x
-
+	; ------ Decode normals ------
+		; r0 = decodedNormals
+		; r1 = Component multiplied
+		; r2 = Substracted component normal value
+		; r3 = exponent
 	; Decode z
-	mul r2.z, r1.x, r0.z ; z = innrm / 16
-	flr r2.z, r2.z 		; z = floor(innrm / 16)
+	mov param1, innrm.x 					; param1 = innrm
+	mov param2, twopow.y 					; param2 = 4
+	call rshift 							; return = innrm >> 4
+	mov r0.z, return 						; decodedNormals.z = return
 
-	; Substract z from innrm
-	mul r3.z, r2.z, r0.x ; zmul = z * 16
-	mul r3.z, r3.z, r4 	; -zmul
-	add r1.y, r1.x, r3.z ; innrm - (z * 16)
+	; Substract z << 4 from innrm
+	ex2 r3, twopow.y						; exponent = 2 ^ 4 = 16
+	mul r1, r0.z, r3	 					; zmul = z * exponent
+
+	mov param1, innrm.x 					; param1 = innrm
+	mov param2, r1 							; param2 = zmul
+	call subs 								; return = innrm - zmul
+	mov r2, return 							; innrmxy = innrm - zmul
 
 	; Decode y
-	mul r2.y, r1.y, r0.w ; y = innrmxy / 4
-	flr r2.y, r2.y 		; y = floor(innrmxy / 4)
+	mov param1, r2 							; param1 = innrmxy
+	mov param2, twopow.x 					; param2 = 2
+	call rshift 							; return = innrmxy >> 2
+	mov r0.y, return 						; decodedNormals.y = return
 
-	; Substract y from innrmxy
-	mul r3.y, r2.y, r0.y ; ymul = y * 4
-	mul r3.y, r3.y, r4 	; -ymul
+	; Substract y << 2 from innrmxy -> x
+	ex2 r3, twopow.x						; exponent = 2 ^ 2 = 4
+	mul r1, r0.y, r3 						; ymul = decodedNormals.y * exponent
 
-	; Decode x (substracting y from innrmxy give the x component)
-	add r2.x, r1.y, r3.y ; x = innrmxy - (y * 4)
-	
-	mov r2.w, ones ; w = 1
-	mov r0, r2 ; r0 = decodedNormals
+	mov param1, r2 							; param1 = innrmxy
+	mov param2, r1 							; param2 = ymul
+	call subs 								; return = innrmxy - ymul
+	mov r0.x, return 						; decodedNormals.x = return
 
-	; decodedNormals - 1
-	add r0, r0, r4
+	; decodedNormals -= 1
+	mov param1, r0 							; param1 = decodedNormals
+	mov param2, ones 						; param2 = 1
+	call subs 								; return = decodedNormals - 1
+	mov r0, return 							; decodedNormals = return
 
 	; Transform the normal vector with the modelView matrix
 	; r1 = normalize(modelView * innrm)

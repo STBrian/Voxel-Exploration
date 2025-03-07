@@ -12,6 +12,8 @@
 #include "string_utils.h"
 #include "dynalist.h"
 
+#define TERRAIN_SIZE 6
+
 static C2D_TextBuf g_textBuffer;
 static C2D_Text g_fpsText[3];
 
@@ -44,9 +46,9 @@ int main()
     }
 
     DListInit(&chunks, sizeof(Chunk));
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 5; i++)
     {
-        for (int j = 0; j < 4; j++)
+        for (int j = 0; j < 5; j++)
         {
             Chunk* currentChunk = DListAppendNew(chunks);
             ChunkInitDefault(currentChunk);
@@ -57,30 +59,30 @@ int main()
     printf("Chunks initialized\n");
 
     printf("Generating chunk data...\n");
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < TERRAIN_SIZE * TERRAIN_SIZE; i++)
     {
         Chunk* currentChunk = DListGet(chunks, i);
         Chunk* neighbor;
-        int x = i / 4;
-        int z = i % 4;
+        int x = i / TERRAIN_SIZE;
+        int z = i % TERRAIN_SIZE;
         if (x > 0)
         {
-            neighbor = DListGet(chunks, (x - 1) * 4 + z);
+            neighbor = DListGet(chunks, (x - 1) * TERRAIN_SIZE + z);
             currentChunk->left_neighbor = neighbor;
         }
-        if (x < 3)
+        if (x < TERRAIN_SIZE - 1)
         {
-            neighbor = DListGet(chunks, (x + 1) * 4 + z);
+            neighbor = DListGet(chunks, (x + 1) * TERRAIN_SIZE + z);
             currentChunk->right_neighbor = neighbor;
         }
         if (z > 0)
         {
-            neighbor = DListGet(chunks, x * 4 + z - 1);
+            neighbor = DListGet(chunks, x * TERRAIN_SIZE + z - 1);
             currentChunk->back_neighbor = neighbor;
         }
-        if (z < 3)
+        if (z < TERRAIN_SIZE - 1)
         {
-            neighbor = DListGet(chunks, x * 4 + z + 1);
+            neighbor = DListGet(chunks, x * TERRAIN_SIZE + z + 1);
             currentChunk->front_neighbor = neighbor;
         }
         ChunkGenerateTerrain(currentChunk, 2342);
@@ -88,7 +90,7 @@ int main()
     }
 
     printf("Generating chunk mesh data...\n");
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < TERRAIN_SIZE * TERRAIN_SIZE; i++)
     {
         ChunkGenerateRenderObject(DListGet(chunks, i));
         printf("Chunk %d mesh data generated\n", i+1);
@@ -142,7 +144,7 @@ int main()
         R3D_Scene3DBegin();
         C3D_TexBind(0, &stoneTex);
 
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < TERRAIN_SIZE * TERRAIN_SIZE; i++)
             ChunkRender(DListGet(chunks, i), actorCamera);
 
         // Render the 2D scene
@@ -172,6 +174,7 @@ int main()
     goto EXIT;
 
     ERROR:
+    printf("\nPress Start to exit");
     while (aptMainLoop())
     {
         hidScanInput();
@@ -184,15 +187,11 @@ int main()
     goto END;
 
     EXIT:
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < TERRAIN_SIZE * TERRAIN_SIZE; i++)
     {
         ChunkDestroy(DListGet(chunks, i));
         printf("Chunk %d deleted\n", i);
     }
-
-    // Free global render resources
-    R3D_Finish();
-
     // Free strings
     sdestroy(fpsString);
     sdestroy(coordsString);
@@ -204,6 +203,8 @@ int main()
     C2D_TextBufDelete(g_textBuffer);
 
     END:
+    // Free global render resources
+    R3D_Release();
 	// Deinitialize graphics
     R3D_SceneDelete(&mainScene);
     R3D_Fini();

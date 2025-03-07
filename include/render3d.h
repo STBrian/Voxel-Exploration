@@ -31,6 +31,7 @@ struct shader_uniforms_s {
     int uLoc_lightHalfVec;
     int uLoc_lightClr;
     int uLoc_material;
+    int uLoc_textureProp;
 };
 
 typedef struct g_render3d {
@@ -88,7 +89,7 @@ void R3D_FrameEnd();
 
 void R3D_DrawCubicInstance(CubicInstance *instance);
 
-void R3D_Finish();
+void R3D_Release();
 
 
 

@@ -11,9 +11,9 @@ typedef struct
 
 typedef struct
 {
-    uint8_t position[3];
-    float texcoord[2];
-    uint8_t normal;
+    uint8_t position[3]; // Used -> 000|00000| 000|00000|
+    uint8_t texcoord[2]; // Used -> all
+    uint8_t normal; // Used -> 00|000000|
 } CompressedVertex;
 
 typedef struct 
